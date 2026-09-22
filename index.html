@@ -376,7 +376,7 @@
 
     <!-- Toolbar -->
     <div class="toolbar">
-        <input type="text" id="searchInput" placeholder="მოძებნე დასახელება, ბრენდი ან კოდი..." oninput="updateUI()">
+        <input type="text" id="searchInput" placeholder="მოძებნე დასახელება, ბრენდი ან კოდი..." oninput="debouncedUpdateUI()">
         <button class="btn-calc" style="background:#BA7517;" onclick="openOfferModal()">🤝 შეთავაზება</button>
         <button class="btn-calc" onclick="openInvoice()">📄 ინვოისის შექმნა</button>
         <button class="btn-calc" style="background:#8b5cf6;" onclick="openOrderModal()">📦 შეკვეთა</button>
@@ -1019,6 +1019,16 @@
         auth = firebase.auth();
         db = firebase.firestore();
 
+        // ⚡ ლოკალური (IndexedDB) cache ჩართულია: მეორედ შესვლისას მონაცემები მყისიერად იტვირთება
+        // cache-იდან და ფონზე სინქრონდება მხოლოდ ცვლილებები, ნაცვლად ყოველ ჯერზე მთლიანი ხელახლა ჩამოტვირთვისა.
+        db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+            if (err.code === 'failed-precondition') {
+                console.warn('Firestore offline cache: რამდენიმე ტაბია ღია, cache ერთში ჩაირთვება.');
+            } else if (err.code === 'unimplemented') {
+                console.warn('Firestore offline cache არ არის მხარდაჭერილი ამ ბრაუზერში.');
+            }
+        });
+
         auth.onAuthStateChanged(user => {
             if (user) {
                 currentUser = user;
@@ -1101,20 +1111,25 @@
     async function fetchAppData() {
         if (isLocalMode) return;
         try {
-            const stockDoc = await db.collection("appData").doc("stock").get();
+            // ⚡ 5 დოკუმენტი პარალელურად იტვირთება Promise.all-ით (ადრე თანმიმდევრობით, ერთმანეთის მიყოლებით იტვირთებოდა)
+            const [stockDoc, clientsDoc, featuresDoc, settingsDoc, historyDoc] = await Promise.all([
+                db.collection("appData").doc("stock").get(),
+                db.collection("appData").doc("clients").get(),
+                db.collection("appData").doc("features").get(),
+                db.collection("appData").doc("settings").get(),
+                db.collection("appData").doc("salesHistory").get()
+            ]);
+
             if (stockDoc.exists) DATA = stockDoc.data().items || [];
 
-            const clientsDoc = await db.collection("appData").doc("clients").get();
             if (clientsDoc.exists) {
                 CLIENTS = clientsDoc.data().items || [];
                 const dl = document.getElementById('clientsDatalist');
                 if (dl) dl.innerHTML = CLIENTS.map(c => `<option value="${c.name} (ს/კ: ${c.idCode})">`).join('');
             }
 
-            const featuresDoc = await db.collection("appData").doc("features").get();
             if (featuresDoc.exists) AUX_DATA = featuresDoc.data().items || {};
 
-            const settingsDoc = await db.collection("appData").doc("settings").get();
             if (settingsDoc.exists) {
                 currentUsdRate = settingsDoc.data().usdRate || 2.75;
             } else {
@@ -1125,8 +1140,7 @@
             if (usdInput) usdInput.value = currentUsdRate;
 
             applyAuxData();
-            
-            const historyDoc = await db.collection("appData").doc("salesHistory").get();
+
             if(historyDoc.exists) {
                 HISTORY_DATA = historyDoc.data().items || [];
                 document.getElementById('historyUploadStatus').innerHTML = `✅ ჩაიტვირთა ${HISTORY_DATA.length} ისტორიული ჩანაწერი.`;
@@ -2915,16 +2929,20 @@ function downloadContractWord() {
     }
 
     function applyAuxData() {
-        if (DATA.length === 0 || Object.keys(AUX_DATA).length === 0) return;
-        DATA.forEach(p => {
-            if (AUX_DATA[p.code]) { p.features = AUX_DATA[p.code].features; p.country = AUX_DATA[p.code].country; p.warranty = AUX_DATA[p.code].warranty;
-            } else {
-                const numCode = String(parseInt(p.code, 10));
-                if (AUX_DATA[numCode]) { p.features = AUX_DATA[numCode].features; p.country = AUX_DATA[numCode].country; p.warranty = AUX_DATA[numCode].warranty; }
-            }
-        });
+        if (DATA.length === 0) return;
+        // 🐛 შესწორებულია: ადრე, თუ AUX_DATA (features დოკუმენტი) ცარიელი იყო, ფუნქცია აქვე წყვეტდა მუშაობას
+        // და renderCalc()/updateUI() საერთოდ არ გამოიძახებოდა — ანუ სტოკი ჩატვირთული იყო, მაგრამ ეკრანზე არ გამოჩნდებოდა.
+        if (Object.keys(AUX_DATA).length > 0) {
+            DATA.forEach(p => {
+                if (AUX_DATA[p.code]) { p.features = AUX_DATA[p.code].features; p.country = AUX_DATA[p.code].country; p.warranty = AUX_DATA[p.code].warranty;
+                } else {
+                    const numCode = String(parseInt(p.code, 10));
+                    if (AUX_DATA[numCode]) { p.features = AUX_DATA[numCode].features; p.country = AUX_DATA[numCode].country; p.warranty = AUX_DATA[numCode].warranty; }
+                }
+            });
+        }
         renderCalc();
-        if (DATA.length > 0) updateUI();
+        updateUI();
     }
 
     const CONFIG = { "ენდოსკოპია": "f-endo", "ექოსკოპია": "f-echo", "ლაპარასკოპია": "f-lap", "ოფთალმოლოგია": "f-opht", "სხვა": "f-other", "-": "f-other" };
@@ -3044,6 +3062,13 @@ function downloadContractWord() {
             }
         };
         reader.readAsArrayBuffer(file);
+    }
+
+    // ⚡ debounce: სრული სიის ხელახლა აგება ხდება მხოლოდ მას შემდეგ, რაც მომხმარებელი წერას წყვეტს
+    let uiUpdateTimer = null;
+    function debouncedUpdateUI() {
+        clearTimeout(uiUpdateTimer);
+        uiUpdateTimer = setTimeout(updateUI, 200);
     }
 
     function updateUI() {
@@ -3275,7 +3300,7 @@ function downloadContractWord() {
 
             return `
                 <tr>
-                    <td><div class="prod-img-box"><img src="https://firebasestorage.googleapis.com/v0/b/stockpipeline-2c77b.firebasestorage.app/o/products%2F${p.code}.jpg?alt=media" data-code="${p.code}" onerror="imageFallback(this)"></div></td>
+                    <td><div class="prod-img-box"><img loading="lazy" src="https://firebasestorage.googleapis.com/v0/b/stockpipeline-2c77b.firebasestorage.app/o/products%2F${p.code}.jpg?alt=media" data-code="${p.code}" onerror="imageFallback(this)"></div></td>
                     <td style="font-weight: 600;">${p.name}</td>
                     <td>${p.brand !== '-' ? p.brand : ''}<br><span style="font-size:11px; color:#64748b;">${p.model}</span></td>
                     <td class="text-left" style="font-size:12px; line-height: 1.4;">${p.features || '-'}</td>
@@ -3451,7 +3476,7 @@ function downloadContractWord() {
 
             return `
                 <tr>
-                    <td><div class="prod-img-box"><img src="https://firebasestorage.googleapis.com/v0/b/stockpipeline-2c77b.firebasestorage.app/o/products%2F${item.code}.jpg?alt=media" data-code="${item.code}" onerror="imageFallback(this)"></div></td>
+                    <td><div class="prod-img-box"><img loading="lazy" src="https://firebasestorage.googleapis.com/v0/b/stockpipeline-2c77b.firebasestorage.app/o/products%2F${item.code}.jpg?alt=media" data-code="${item.code}" onerror="imageFallback(this)"></div></td>
                     <td style="font-weight: 600;">#${item.code}</td>
                     <td>${item.name}</td>
                     <td class="text-left" style="font-size:12px; line-height: 1.4;">${item.features}</td>
