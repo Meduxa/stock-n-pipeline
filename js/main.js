@@ -88,6 +88,11 @@ if (!isLocalMode) {
     auth = firebase.auth();
     db = firebase.firestore();
 
+    // long-polling WebChannel-ის ნაცვლად: tracking prevention / ad blocker-ების მქონე ბრაუზერებში
+    // WebChannel იბლოკება და Firestore "client is offline" შეცდომას აბრუნებს.
+    // settings() უნდა გამოიძახოს ნებისმიერ სხვა Firestore ოპერაციამდე (enablePersistence-ის ჩათვლით).
+    db.settings({ experimentalForceLongPolling: true });
+
     // ლოკალური (IndexedDB) cache: მეორედ შესვლისას მონაცემები მყისიერად იტვირთება cache-იდან
     // და ფონზე სინქრონდება მხოლოდ ცვლილებები.
     db.enablePersistence({ synchronizeTabs: true }).catch(err => {
