@@ -10,7 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
 
     <style>
         :root {
@@ -780,9 +780,6 @@
                         <th class="hide-on-pdf" style="width: 40px;">წაშლა</th>
                     </tr>
                 </thead>
-
-                    </tr>
-                </thead>
                 <tbody id="calcTableBody"></tbody>
             </table>
             <div class="calc-totals">
@@ -961,6 +958,28 @@
     let monthlyTarget = 0; 
     let monthlyAchieved = 0; 
     let tasksData = [];
+
+    // --- დამხმარე ფუნქციები ---
+    // მომხმარებლის შეყვანილი ტექსტის უსაფრთხოდ ჩასმა innerHTML-ში (XSS-ისგან დაცვა)
+    function escapeHtml(str) {
+        return String(str ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    }
+    // ლოკალური (საქართველოს) თარიღი YYYY-MM-DD — toISOString() UTC-ს იყენებს და 00:00-04:00 შუალედში წინა დღეს აბრუნებს
+    function localISODate() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    function localISOMonth() { return localISODate().slice(0, 7); }
+    // ისტორიის ჩანაწერის დრო, წუთები ყოველთვის ორნიშნა (14:05 და არა 14:5)
+    function nowStamp() {
+        const d = new Date();
+        return d.toLocaleDateString('ka-GE') + " " + d.getHours() + ":" + String(d.getMinutes()).padStart(2, '0');
+    }
+    // Firestore-ში ჩაწერის შეცდომის შეტყობინება (მაგ. დოკუმენტის 1MB ლიმიტის გადაჭარბება დიდი ფაილების გამო)
+    function reportSaveError(err) {
+        console.error("შენახვის შეცდომა:", err);
+        alert("შენახვა ვერ მოხერხდა: " + (err && err.message ? err.message : err) + "\n\nთუ მიმაგრებულია დიდი ფაილები, შესაძლოა გადაჭარბებულია ბაზის 1MB ლიმიტი.");
+    }
 
     // --- ქართულად რიცხვების სიტყვიერად ჩაწერის ფუნქცია კონტრაქტისთვის ---
     function numToWordsGE(num) {
@@ -1171,7 +1190,7 @@
     }
 
     async function fetchTarget() {
-        const currentMonth = new Date().toISOString().slice(0, 7); 
+        const currentMonth = localISOMonth(); 
         if (isLocalMode) {
             const localData = JSON.parse(localStorage.getItem('stock_targets')) || {};
             const data = localData[currentMonth];
@@ -1215,7 +1234,7 @@
     function saveTarget() {
         const tVal = parseFloat(document.getElementById('monthlyTargetInput').value) || 0;
         const aVal = parseFloat(document.getElementById('monthlyAchievedInput').value) || 0;
-        const currentMonth = new Date().toISOString().slice(0, 7);
+        const currentMonth = localISOMonth();
         monthlyTarget = tVal;
         monthlyAchieved = aVal;
         
@@ -1277,7 +1296,7 @@
         leadsData.forEach(l => { if(l.userEmail) users.add(l.userEmail); });
         tasksData.forEach(t => { if(t.userEmail) users.add(t.userEmail); });
         const dl = document.getElementById('usersDatalist');
-        if (dl) dl.innerHTML = Array.from(users).map(e => `<option value="${e}">`).join('');
+        if (dl) dl.innerHTML = Array.from(users).map(e => `<option value="${escapeHtml(e)}">`).join('');
     }
     
     /* ==========================================
@@ -1799,7 +1818,7 @@ ${logoBlock()}
         closeContractPicker();
         contractState = { tplId: tplId || 'general', values: {}, schedule: [], products: [] };
         const tpl = getContractTpl();
-        contractState.values.date = new Date().toISOString().slice(0, 10);
+        contractState.values.date = localISODate();
         if (tpl.productCols) contractState.products = [{}];
 
         document.getElementById('contractModalTitle').innerText = '📝 ' + tpl.title;
@@ -2145,8 +2164,9 @@ function downloadContractWord() {
     }
 
     function updateLeadSelectors() {
-        const allLeadsHtml = leadsData.map(l => `<option value="${l.clinic || 'უცნობი'} - ${l.product || ''} (${l.amount ? l.amount + ' ₾' : '0 ₾'}) | ID: ${l.id}">`).join('');
-        const wonLeadsHtml = leadsData.filter(l => l.stage === 'closed_won').map(l => `<option value="${l.clinic || 'უცნობი'} - ${l.product || ''} (${l.amount ? l.amount + ' ₾' : '0 ₾'}) | ID: ${l.id}">`).join('');
+        const leadOption = l => `<option value="${escapeHtml(`${l.clinic || 'უცნობი'} - ${l.product || ''} (${l.amount ? l.amount + ' ₾' : '0 ₾'}) | ID: ${l.id}`)}">`;
+        const allLeadsHtml = leadsData.map(leadOption).join('');
+        const wonLeadsHtml = leadsData.filter(l => l.stage === 'closed_won').map(leadOption).join('');
         
         const leadsDl = document.getElementById('leadsDatalist');
         const wonLeadsDl = document.getElementById('wonLeadsDatalist');
@@ -2180,7 +2200,7 @@ function downloadContractWord() {
             });
         }
         
-        const today = new Date().toISOString().slice(0, 10);
+        const today = localISODate();
 
         Object.keys(STAGES).forEach(stageKey => {
             let stageLeads = filteredLeads.filter(l => l.stage === stageKey);
@@ -2213,15 +2233,15 @@ function downloadContractWord() {
                             
                             return `
                             <div class="${cardClass}" draggable="true" ondragstart="dragLead(event, '${l.id}')" onclick="openLeadModal('${l.id}')">
-                                ${isAdmin ? `<div style="font-size:10.5px; color:#3b82f6; margin-bottom:6px; font-weight:600;">👤 ${l.userEmail || 'უცნობი'}</div>` : ''}
-                                ${l.product ? `<div class="lead-interest">🎯 ${l.product}</div>` : ''}
-                                <div class="lead-title">${l.clinic || 'უცნობი კლინიკა'}</div>
-                                <div class="lead-clinic">👤 ${l.contact || '-'}</div>
+                                ${isAdmin ? `<div style="font-size:10.5px; color:#3b82f6; margin-bottom:6px; font-weight:600;">👤 ${escapeHtml(l.userEmail || 'უცნობი')}</div>` : ''}
+                                ${l.product ? `<div class="lead-interest">🎯 ${escapeHtml(l.product)}</div>` : ''}
+                                <div class="lead-title">${escapeHtml(l.clinic || 'უცნობი კლინიკა')}</div>
+                                <div class="lead-clinic">👤 ${escapeHtml(l.contact || '-')}</div>
                                 <div class="lead-meta-row">
                                     <span>💰 ${l.amount ? parseFloat(l.amount).toLocaleString('ka-GE') + ' ₾' : '0 ₾'}</span>
                                     <span>${fileCount > 0 ? '📎 ' + fileCount + ' ფაილი' : ''}</span>
                                 </div>
-                                ${l.followUpDate ? `<div style="font-size:11px; margin-top:5px; padding-top:5px; border-top:1px dashed var(--border); color:${isOverdue ? '#ef4444' : '#1D9E75'}; font-weight:600;">🗓 Follow-up: ${l.followUpDate} ${isOverdue ? '<span class="overdue-badge">გადაცილებული</span>' : ''}</div>` : ''}
+                                ${l.followUpDate ? `<div style="font-size:11px; margin-top:5px; padding-top:5px; border-top:1px dashed var(--border); color:${isOverdue ? '#ef4444' : '#1D9E75'}; font-weight:600;">🗓 Follow-up: ${escapeHtml(l.followUpDate)} ${isOverdue ? '<span class="overdue-badge">გადაცილებული</span>' : ''}</div>` : ''}
                             </div>
                             `;
                         }).join('')}
@@ -2258,7 +2278,7 @@ function downloadContractWord() {
             lead.updatedAt = new Date().toISOString(); 
             if(!lead.history) lead.history = [];
             lead.history.push({
-                date: new Date().toLocaleDateString('ka-GE') + " " + new Date().getHours() + ":" + new Date().getMinutes(),
+                date: nowStamp(),
                 text: `სტატუსი შეიცვალა (${STAGES[newStage].title})`,
                 author: "სისტემა"
             });
@@ -2273,7 +2293,7 @@ function downloadContractWord() {
             localStorage.setItem('stock_pipeline_leads', JSON.stringify(localLeads));
             renderPipeline();
         } else {
-            db.collection("leads").doc(id).update(dataObj);
+            db.collection("leads").doc(id).update(dataObj).catch(reportSaveError);
         }
     }
 
@@ -2296,7 +2316,9 @@ function downloadContractWord() {
         }
 
         if (leadId) {
-            currentEditingLead = leadsData.find(l => l.id === leadId);
+            // ასლი, რომ შეუნახავი კომენტარები ორიგინალ ლიდში არ მოხვდეს, თუ ფანჯარა შენახვის გარეშე დაიხურა
+            const sourceLead = leadsData.find(l => l.id === leadId);
+            currentEditingLead = { ...sourceLead, history: [...(sourceLead.history || [])] };
             document.getElementById('leadModalTitle').innerText = "ლიდის რედაქტირება";
             document.getElementById('leadId').value = leadId;
             document.getElementById('leadManagerEmail').value = currentEditingLead.userEmail || '';
@@ -2364,7 +2386,7 @@ function downloadContractWord() {
         }
         box.innerHTML = files.map((f, i) => `
             <div style="display:inline-flex; align-items:center; gap:8px; background:#e2f0eb; padding:6px 10px; border-radius:6px; border:1px solid #a7d8c6;">
-                <a href="${f.data}" download="${f.name}" style="color:var(--primary); font-size:12px; text-decoration:none; font-weight:600;">📎 ${f.name}</a>
+                <a href="${escapeHtml(f.data)}" download="${escapeHtml(f.name)}" style="color:var(--primary); font-size:12px; text-decoration:none; font-weight:600;">📎 ${escapeHtml(f.name)}</a>
                 <span style="cursor:pointer; color:#ef4444; font-size:14px; font-weight:bold;" onclick="removeTempFile(${i})" title="ფაილის წაშლა">✕</span>
             </div>
         `).join('');
@@ -2396,7 +2418,7 @@ function downloadContractWord() {
             if (isSystem) {
                 return `
                 <div style="font-size: 11px; color: var(--text-light); text-align: center; margin-bottom: 8px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px;">
-                    <i>${h.text} (${h.date})</i>
+                    <i>${escapeHtml(h.text)} (${escapeHtml(h.date)})</i>
                 </div>`;
             }
             
@@ -2404,10 +2426,10 @@ function downloadContractWord() {
             return `
             <div class="comment-box ${cClass}">
                 <div class="comment-meta">
-                    <b>${h.author || 'უცნობი მომხმარებელი'}</b>
-                    <span>${h.date}</span>
+                    <b>${escapeHtml(h.author || 'უცნობი მომხმარებელი')}</b>
+                    <span>${escapeHtml(h.date)}</span>
                 </div>
-                <div>${h.text}</div>
+                <div>${escapeHtml(h.text)}</div>
             </div>
             `;
         }).reverse().join('');
@@ -2419,7 +2441,7 @@ function downloadContractWord() {
         if(currentEditingLead) {
             if(!currentEditingLead.history) currentEditingLead.history = [];
             currentEditingLead.history.push({
-                date: new Date().toLocaleDateString('ka-GE') + " " + new Date().getHours() + ":" + new Date().getMinutes(),
+                date: nowStamp(),
                 text: note,
                 author: currentUser ? currentUser.email : 'Admin'
             });
@@ -2460,7 +2482,7 @@ function downloadContractWord() {
                 localStorage.setItem('stock_pipeline_leads', JSON.stringify(localLeads));
                 closeLeadModal(); renderPipeline();
             } else {
-                db.collection("leads").doc(id).update(data).then(() => closeLeadModal());
+                db.collection("leads").doc(id).update(data).then(() => closeLeadModal()).catch(reportSaveError);
             }
         } else {
             data.userId = currentUser ? currentUser.uid : "local_user_1";
@@ -2473,7 +2495,7 @@ function downloadContractWord() {
                 localStorage.setItem('stock_pipeline_leads', JSON.stringify(localLeads));
                 closeLeadModal(); renderPipeline();
             } else {
-                db.collection("leads").add(data).then(() => closeLeadModal());
+                db.collection("leads").add(data).then(() => closeLeadModal()).catch(reportSaveError);
             }
         }
     }
@@ -2505,7 +2527,7 @@ function downloadContractWord() {
             
             if(!lead.history) lead.history = [];
             lead.history.push({
-                date: new Date().toLocaleDateString('ka-GE') + " " + new Date().getHours() + ":" + new Date().getMinutes(),
+                date: nowStamp(),
                 text: `მიმაგრდა ახალი ინვოისი (თანხა დაემატა: ${totalVal} ₾)`,
                 author: currentUser ? currentUser.email : "სისტემა"
             });
@@ -2537,7 +2559,7 @@ function downloadContractWord() {
             
             if(!lead.history) lead.history = [];
             lead.history.push({
-                date: new Date().toLocaleDateString('ka-GE') + " " + new Date().getHours() + ":" + new Date().getMinutes(),
+                date: nowStamp(),
                 text: `მიმაგრდა ახალი შეთავაზება (თანხა დაემატა: ${totalVal} ₾)`,
                 author: currentUser ? currentUser.email : "სისტემა"
             });
@@ -2563,7 +2585,7 @@ function downloadContractWord() {
             
             if(!lead.history) lead.history = [];
             lead.history.push({
-                date: new Date().toLocaleDateString('ka-GE') + " " + new Date().getHours() + ":" + new Date().getMinutes(),
+                date: nowStamp(),
                 text: `მიმაგრდა ახალი შეკვეთა`,
                 author: currentUser ? currentUser.email : "სისტემა"
             });
@@ -2656,11 +2678,11 @@ function downloadContractWord() {
 
                             return `
                             <div class="task-card ${prioClass}" draggable="true" ondragstart="dragTask(event, '${t.id}')" onclick="openTaskModal('${t.id}')">
-                                ${isAdmin ? `<div style="font-size:10.5px; color:#3b82f6; margin-bottom:6px; font-weight:600;">👤 ${t.userEmail || 'უცნობი'}</div>` : ''}
+                                ${isAdmin ? `<div style="font-size:10.5px; color:#3b82f6; margin-bottom:6px; font-weight:600;">👤 ${escapeHtml(t.userEmail || 'უცნობი')}</div>` : ''}
                                 
                                 <span class="task-tag ${tagClass}">${TAG_NAMES[t.tag] || TAG_NAMES['gen']}</span>
                                 
-                                <div class="task-title">${t.title || 'უცნობი ტასკი'}</div>
+                                <div class="task-title">${escapeHtml(t.title || 'უცნობი ტასკი')}</div>
                                 
                                 <div class="task-meta">
                                     <span>${totalCheck > 0 ? `✅ ${checkedCount}/${totalCheck}` : ''}</span>
@@ -2706,7 +2728,7 @@ function downloadContractWord() {
             localStorage.setItem('stock_pipeline_tasks', JSON.stringify(localTasks));
             renderBacklog();
         } else {
-            db.collection("tasks").doc(id).update(dataObj);
+            db.collection("tasks").doc(id).update(dataObj).catch(reportSaveError);
         }
     }
 
@@ -2744,7 +2766,8 @@ function downloadContractWord() {
                 tempTaskFiles = [...currentEditingTask.files];
             }
             if (currentEditingTask.checklist) {
-                tempChecklist = [...currentEditingTask.checklist];
+                // ღრმა ასლი: მონიშვნა არ უნდა შეიცვალოს ორიგინალ ტასკში შენახვამდე
+                tempChecklist = currentEditingTask.checklist.map(c => ({ ...c }));
             }
             
             renderTaskFiles();
@@ -2789,7 +2812,7 @@ function downloadContractWord() {
         }
         box.innerHTML = tempTaskFiles.map((f, i) => `
             <div style="display:inline-flex; align-items:center; gap:8px; background:#e2f0eb; padding:6px 10px; border-radius:6px; border:1px solid #a7d8c6;">
-                <a href="${f.data}" download="${f.name}" style="color:var(--primary); font-size:12px; text-decoration:none; font-weight:600;">📎 ${f.name}</a>
+                <a href="${escapeHtml(f.data)}" download="${escapeHtml(f.name)}" style="color:var(--primary); font-size:12px; text-decoration:none; font-weight:600;">📎 ${escapeHtml(f.name)}</a>
                 <span style="cursor:pointer; color:#ef4444; font-size:14px; font-weight:bold;" onclick="removeTaskFile(${i})" title="წაშლა">✕</span>
             </div>
         `).join('');
@@ -2833,7 +2856,7 @@ function downloadContractWord() {
         box.innerHTML = tempChecklist.map(c => `
             <div class="checklist-item ${c.done ? 'done' : ''}">
                 <input type="checkbox" ${c.done ? 'checked' : ''} onchange="toggleChecklistItem('${c.id}')">
-                <span class="checklist-text">${c.text}</span>
+                <span class="checklist-text">${escapeHtml(c.text)}</span>
             </div>
         `).join('');
     }
@@ -2868,7 +2891,7 @@ function downloadContractWord() {
                 localStorage.setItem('stock_pipeline_tasks', JSON.stringify(localTasks));
                 closeTaskModal(); renderBacklog();
             } else {
-                db.collection("tasks").doc(id).update(data).then(() => closeTaskModal());
+                db.collection("tasks").doc(id).update(data).then(() => closeTaskModal()).catch(reportSaveError);
             }
         } else {
             data.createdAt = new Date().toISOString();
@@ -2878,7 +2901,7 @@ function downloadContractWord() {
                 localStorage.setItem('stock_pipeline_tasks', JSON.stringify(localTasks));
                 closeTaskModal(); renderBacklog();
             } else {
-                db.collection("tasks").add(data).then(() => closeTaskModal());
+                db.collection("tasks").add(data).then(() => closeTaskModal()).catch(reportSaveError);
             }
         }
     }
@@ -3275,7 +3298,7 @@ function downloadContractWord() {
         let totalRetail = 0;
         
         if(calcItems.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 30px; color: var(--text-light);">ინვოისი ცარიელია. დაამატეთ პროდუქტი.</td></tr>'; 
+            tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 30px; color: var(--text-light);">ინვოისი ცარიელია. დაამატეთ პროდუქტი.</td></tr>'; 
             document.getElementById('calcTotalRetail').innerText = '0 ₾'; 
             return;
         }
@@ -3448,7 +3471,7 @@ function downloadContractWord() {
         let total = 0;
         
         if(offerItems.length === 0) { 
-            tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 30px; color: var(--text-light);">შეთავაზება ცარიელია. დაამატეთ კოდი.</td></tr>'; 
+            tbody.innerHTML = '<tr><td colspan="12" style="text-align: center; padding: 30px; color: var(--text-light);">შეთავაზება ცარიელია. დაამატეთ კოდი.</td></tr>'; 
             document.getElementById('offerTotalAmount').innerText = '0 ₾'; 
             return; 
         }
@@ -3666,7 +3689,7 @@ function downloadContractWord() {
         document.getElementById('analyticsModal').style.display = 'flex';
         // დეფოლტად ვირჩევთ მიმდინარე თვეს, თუ არ არის არჩეული
         if (!document.getElementById('analyticsMonthFilter').value) {
-            document.getElementById('analyticsMonthFilter').value = new Date().toISOString().slice(0, 7);
+            document.getElementById('analyticsMonthFilter').value = localISOMonth();
         }
         renderAnalytics();
     }
