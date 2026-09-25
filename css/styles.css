@@ -103,6 +103,16 @@ input[type="number"] { -moz-appearance: textfield; }
 .export-cat-label { font-weight: 600; font-size: 14px; }
 .export-cat-count { margin-left: auto; font-size: 12px; color: var(--text-light); background: #f1f5f9; padding: 3px 10px; border-radius: 20px; }
 .export-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* წაგების მიზეზის ფანჯარა */
+.lost-reason-item input[type="radio"] { width: 18px; height: 18px; accent-color: #ef4444; cursor: pointer; flex-shrink: 0; margin: 0; }
+.lost-reason-item:hover { border-color: #ef4444; background: #fef2f2; }
+.lost-reason-item.selected { border-color: #ef4444; background: #fee2e2; }
+.lost-reason-error { display: none; color: #ef4444; font-size: 12px; font-weight: 600; margin-top: 6px; }
+.lost-reason-error.visible { display: block; }
+.lead-lost-reason { font-size: 11px; margin-top: 5px; padding-top: 5px; border-top: 1px dashed var(--border); color: #b91c1c; }
+.lead-lost-reason b { font-weight: 600; }
+.lead-lost-comment { color: var(--text-light); margin-top: 3px; white-space: pre-wrap; word-break: break-word; }
 .btn-export-cancel { background: #f1f5f9; color: var(--text-dark); border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
 .btn-export-go { background: #16a34a; color: white; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 7px; transition: 0.2s; }
 .btn-export-go:hover { background: #15803d; transform: translateY(-1px); }

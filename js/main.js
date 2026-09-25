@@ -78,7 +78,10 @@ document.addEventListener('keydown', e => {
     const open = Array.from(document.querySelectorAll('.modal-overlay, .export-modal-overlay'))
         .filter(el => el.id !== 'loginOverlay' && getComputedStyle(el).display !== 'none')
         .sort((a, b) => (parseInt(getComputedStyle(b).zIndex) || 0) - (parseInt(getComputedStyle(a).zIndex) || 0));
-    if (open.length) open[0].style.display = 'none';
+    if (!open.length) return;
+    // წაგების მიზეზის ფანჯარა გაუქმებისას ლიდის სტატუსს აბრუნებს — ამიტომ მხოლოდ დამალვა საკმარისი არ არის
+    if (open[0].id === 'lostReasonModal') cancelLostReason();
+    else open[0].style.display = 'none';
 });
 
 renderBankDetails();

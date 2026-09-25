@@ -270,7 +270,7 @@
             </div>
             <div class="lead-detail-section">
                 <label>სტატუსი (სთეიჯი)</label>
-                <select id="leadStage">
+                <select id="leadStage" onchange="onLeadStageChange()">
                     <option value="new">🆕 ახალი ლიდი</option>
                     <option value="processing">⏳ ლიდის დამუშავება</option>
                     <option value="with_sales">🧑‍💼 შეთავაზება სეილთანაა</option>
@@ -405,6 +405,24 @@
         <div class="export-actions">
             <button class="btn-export-cancel" onclick="closeExportModal()">გაუქმება</button>
             <button class="btn-export-go" id="exportGoBtn" onclick="runExport()">⬇ ჩამოტვირთვა</button>
+        </div>
+    </div>
+</div>
+
+<!-- Lost Reason Modal (ლიდის „წაგებულში" გადატანამდე) -->
+<div class="export-modal-overlay" id="lostReasonModal">
+    <div class="export-modal">
+        <div class="export-modal-title">❌ წაგების მიზეზი</div>
+        <div class="export-modal-subtitle">ლიდი „წაგებულში" გადავა მხოლოდ მიზეზის არჩევის შემდეგ</div>
+        <div class="export-cat-list" id="lostReasonList" style="margin-bottom:16px;"></div>
+        <div class="lead-detail-section">
+            <label for="lostReasonComment">კომენტარი <span id="lostCommentHint" style="font-weight:normal;">(არასავალდებულო)</span></label>
+            <textarea id="lostReasonComment" rows="3" placeholder="დამატებითი ინფორმაცია..." oninput="clearLostReasonError()"></textarea>
+            <div id="lostReasonError" class="lost-reason-error"></div>
+        </div>
+        <div class="export-actions">
+            <button class="btn-export-cancel" onclick="cancelLostReason()">გაუქმება</button>
+            <button class="btn-export-go" style="background:#ef4444;" onclick="confirmLostReason()">✔ დადასტურება</button>
         </div>
     </div>
 </div>

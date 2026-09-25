@@ -127,6 +127,11 @@ function renderPipeline() {
                                 <span>${fileCount > 0 ? '📎 ' + fileCount + ' ფაილი' : ''}</span>
                             </div>
                             ${l.followUpDate ? `<div style="font-size:11px; margin-top:5px; padding-top:5px; border-top:1px dashed var(--border); color:${isOverdue ? '#ef4444' : '#1D9E75'}; font-weight:600;">🗓 Follow-up: ${escapeHtml(l.followUpDate)} ${isOverdue ? '<span class="overdue-badge">გადაცილებული</span>' : ''}</div>` : ''}
+                            ${stageKey === 'closed_lost' && l.lostReason ? `
+                            <div class="lead-lost-reason">
+                                <b>წაგების მიზეზი:</b> ${escapeHtml(l.lostReason)}
+                                ${l.lostComment ? `<div class="lead-lost-comment">💬 ${escapeHtml(l.lostComment)}</div>` : ''}
+                            </div>` : ''}
                         </div>
                         `;
                     }).join('')}
@@ -157,14 +162,101 @@ function dropLead(event, newStage) {
     if (!leadId) return;
 
     const lead = leadsData.find(l => l.id === leadId);
-    if (lead && lead.stage !== newStage) {
-        const history = [...(lead.history || []), {
+    if (!lead || lead.stage === newStage) return;
+
+    const moveLead = (lostFields) => {
+        // ლიდი შეიძლება snapshot-ით განახლდა, სანამ ფანჯარა ღია იყო
+        const current = leadsData.find(l => l.id === leadId) || lead;
+        const history = [...(current.history || []), {
             date: nowStamp(),
             text: `სტატუსი შეიცვალა (${STAGES[newStage].title})`,
             author: "სისტემა"
         }];
-        updateLeadInDB(leadId, { stage: newStage, updatedAt: new Date().toISOString(), history });
+        updateLeadInDB(leadId, { stage: newStage, updatedAt: new Date().toISOString(), history, ...lostFields });
+    };
+
+    // „წაგებულში" გადატანა მხოლოდ მიზეზის არჩევის შემდეგ; გაუქმებისას ლიდი თავის სვეტში რჩება
+    if (newStage === 'closed_lost') {
+        openLostReasonModal(moveLead);
+    } else {
+        moveLead(lead.stage === 'closed_lost' ? { lostReason: null, lostComment: null } : {});
     }
+}
+
+/* ==========================================
+   ❌ წაგების მიზეზი (სავალდებულო „წაგებულში" გადატანისას)
+   ========================================== */
+const LOST_REASONS = ["ფასი", "კონკურენტი აირჩიეს", "ყიდვა გადაიფიქრეს", "სხვა"];
+const LOST_REASON_OTHER = "სხვა"; // ამ მიზეზისთვის კომენტარი სავალდებულოა
+
+let lostReasonCallbacks = null;
+
+// onConfirm იღებს { lostReason, lostComment }; onCancel — ფანჯრის დახურვისას დადასტურების გარეშე
+function openLostReasonModal(onConfirm, onCancel = () => {}) {
+    lostReasonCallbacks = { onConfirm, onCancel };
+    document.getElementById('lostReasonList').innerHTML = LOST_REASONS.map(r => `
+        <label class="export-cat-item lost-reason-item">
+            <input type="radio" name="lostReason" value="${escapeHtml(r)}" onchange="onLostReasonChange()">
+            <span class="export-cat-label">${escapeHtml(r)}</span>
+        </label>
+    `).join('');
+    document.getElementById('lostReasonComment').value = '';
+    clearLostReasonError();
+    onLostReasonChange();
+    document.getElementById('lostReasonModal').style.display = 'flex';
+}
+
+function selectedLostReason() {
+    const checked = document.querySelector('#lostReasonList input[name="lostReason"]:checked');
+    return checked ? checked.value : '';
+}
+
+function onLostReasonChange() {
+    const reason = selectedLostReason();
+    document.querySelectorAll('#lostReasonList .lost-reason-item').forEach(item => {
+        item.classList.toggle('selected', item.querySelector('input').checked);
+    });
+    document.getElementById('lostCommentHint').innerText = reason === LOST_REASON_OTHER ? '(სავალდებულო)' : '(არასავალდებულო)';
+    clearLostReasonError();
+}
+
+function showLostReasonError(msg) {
+    const el = document.getElementById('lostReasonError');
+    el.innerText = msg;
+    el.classList.add('visible');
+}
+
+function clearLostReasonError() {
+    document.getElementById('lostReasonError').classList.remove('visible');
+}
+
+function closeLostReasonModal() {
+    document.getElementById('lostReasonModal').style.display = 'none';
+    lostReasonCallbacks = null;
+}
+
+function confirmLostReason() {
+    const reason = selectedLostReason();
+    const comment = document.getElementById('lostReasonComment').value.trim();
+    if (!reason) {
+        showLostReasonError('გთხოვთ აირჩიოთ წაგების მიზეზი.');
+        return;
+    }
+    if (reason === LOST_REASON_OTHER && !comment) {
+        showLostReasonError('„სხვა" მიზეზის არჩევისას კომენტარი სავალდებულოა.');
+        document.getElementById('lostReasonComment').focus();
+        return;
+    }
+    const { onConfirm } = lostReasonCallbacks || {};
+    closeLostReasonModal();
+    if (onConfirm) onConfirm({ lostReason: reason, lostComment: comment });
+}
+
+// გამოიძახება „გაუქმების" ღილაკით და Escape-ით (main.js)
+function cancelLostReason() {
+    const { onCancel } = lostReasonCallbacks || {};
+    closeLostReasonModal();
+    if (onCancel) onCancel();
 }
 
 // მხოლოდ შეცვლილი ველები იგზავნება — ლიდის დოკუმენტი შეიძლება შეიცავდეს დიდ base64 ფაილებს,
@@ -187,6 +279,8 @@ let currentEditingLead = null;
 let tempFiles = [];
 let removedStoredPaths = []; // Storage-იდან წასაშლელი ფაილები — იშლება მხოლოდ ლიდის წარმატებით შენახვის შემდეგ
 let leadSaving = false;
+let leadStagePrev = 'new';  // სტატუსი „წაგებულის" არჩევამდე — მიზეზის გაუქმებისას მას ვუბრუნდებით
+let leadLostInfo = null;    // ფანჯარაში დადასტურებული { lostReason, lostComment }
 
 function openLeadModal(leadId = null) {
     document.getElementById('leadModal').style.display = 'flex';
@@ -239,6 +333,26 @@ function openLeadModal(leadId = null) {
         renderComments([]);
         renderLeadFiles([]);
     }
+    leadStagePrev = document.getElementById('leadStage').value;
+    leadLostInfo = null;
+}
+
+function onLeadStageChange() {
+    const select = document.getElementById('leadStage');
+    if (select.value !== 'closed_lost') {
+        leadStagePrev = select.value;
+        leadLostInfo = null;
+        return;
+    }
+    if (currentEditingLead && currentEditingLead.stage === 'closed_lost') {
+        // უკვე წაგებული ლიდი — არსებული მიზეზი რჩება
+        leadStagePrev = select.value;
+        return;
+    }
+    openLostReasonModal(
+        info => { leadLostInfo = info; leadStagePrev = 'closed_lost'; },
+        () => { select.value = leadStagePrev; }
+    );
 }
 
 function closeLeadModal() {
@@ -364,6 +478,19 @@ async function saveLead() {
         fileName: null,
         fileData: null
     };
+
+    const wasLost = !!(currentEditingLead && currentEditingLead.stage === 'closed_lost');
+    if (data.stage === 'closed_lost' && !wasLost) {
+        // ლიდი „წაგებულში" მხოლოდ მიზეზით გადადის
+        if (!leadLostInfo) {
+            openLostReasonModal(info => { leadLostInfo = info; leadStagePrev = 'closed_lost'; saveLead(); });
+            return;
+        }
+        Object.assign(data, leadLostInfo);
+    } else if (data.stage !== 'closed_lost' && wasLost) {
+        data.lostReason = null;
+        data.lostComment = null;
+    }
 
     if (isAdmin) {
         const customEmail = document.getElementById('leadManagerEmail').value.trim();
