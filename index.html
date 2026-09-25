@@ -341,6 +341,11 @@
                 <input type="text" id="taskTitle" placeholder="მოკლე დასახელება...">
             </div>
 
+            <div class="lead-detail-section">
+                <label>აღწერა</label>
+                <textarea id="taskDescription" rows="4" placeholder="ტასკის დეტალური აღწერა..."></textarea>
+            </div>
+
             <div class="lead-detail-section" id="taskManagerSection" style="display:none;">
                 <label>პასუხისმგებელი მენეჯერი (ელ-ფოსტა)</label>
                 <input type="text" id="taskManagerEmail" list="usersDatalist" placeholder="ვის ევალება?">
@@ -366,14 +371,20 @@
                 </div>
             </div>
 
-            <div class="lead-detail-section">
-                <label>სტატუსი</label>
-                <select id="taskStage">
-                    <option value="new_task">📝 ახალი თასქი</option>
-                    <option value="in_progress">⏳ დაწყებულია</option>
-                    <option value="on_hold">⏸ დაყოვნებულია</option>
-                    <option value="completed">✅ შესრულებულია</option>
-                </select>
+            <div class="lead-detail-section" style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>სტატუსი</label>
+                    <select id="taskStage">
+                        <option value="new_task">📝 ახალი თასქი</option>
+                        <option value="in_progress">⏳ დაწყებულია</option>
+                        <option value="on_hold">⏸ დაყოვნებულია</option>
+                        <option value="completed">✅ შესრულებულია</option>
+                    </select>
+                </div>
+                <div style="flex: 1;">
+                    <label>შესრულების ვადა</label>
+                    <input type="date" id="taskDueDate">
+                </div>
             </div>
 
             <div class="lead-detail-section">
@@ -390,6 +401,15 @@
                 </div>
                 <div class="progress-bg" style="margin-bottom:10px; height:6px;"><div class="progress-bar prog-green" id="taskChecklistProgress" style="width:0%;"></div></div>
                 <div id="taskChecklistBox" style="display:flex; flex-direction:column; gap:0;"></div>
+            </div>
+
+            <div class="lead-detail-section">
+                <label>💬 კომენტარები</label>
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <input type="text" id="taskCommentInput" placeholder="ჩაწერეთ კომენტარი..." onkeydown="if(event.key==='Enter') addTaskComment()">
+                    <button class="btn-calc" style="padding:10px;" onclick="addTaskComment()">დამატება</button>
+                </div>
+                <div class="lead-history" id="taskCommentsBox"></div>
             </div>
         </div>
     </div>

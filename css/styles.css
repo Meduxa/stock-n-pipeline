@@ -214,7 +214,8 @@ input[type="number"] { -moz-appearance: textfield; }
 .file-badge:hover { background: #cbd5e1; }
 
 /* ================== BACKLOG & TASKS STYLES ================== */
-.task-card { background: white; border: 1px solid var(--border); padding: 12px; border-radius: 8px; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: 0.2s; position: relative; overflow: hidden;}
+/* flex-shrink: 0 — სავსე სვეტში ბარათი არ უნდა შეიკუმშოს (overflow: hidden-ის გამო ტექსტი იჭრებოდა) */
+.task-card { background: white; border: 1px solid var(--border); padding: 12px; border-radius: 8px; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: 0.2s; position: relative; overflow: hidden; flex-shrink: 0;}
 .task-card:active { cursor: grabbing; }
 .task-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
 
@@ -224,13 +225,25 @@ input[type="number"] { -moz-appearance: textfield; }
 .priority-low { background-color: var(--task-low); border-left: 4px solid var(--task-low-border) !important; }
 
 /* Tags */
+.task-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.task-badges .task-tag { margin-bottom: 0; }
 .task-tag { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px; color: white; font-weight: bold; margin-bottom: 6px; }
+.prio-high { background-color: var(--task-high-border); }
+.prio-med { background-color: var(--task-med-border); }
+.prio-low { background-color: var(--task-low-border); }
 .tag-eng { background-color: var(--tag-eng); }
 .tag-pur { background-color: var(--tag-pur); }
 .tag-sal { background-color: var(--tag-sal); }
 .tag-gen { background-color: var(--tag-gen); }
 
-.task-title { font-weight: 600; font-size: 13px; color: var(--text-dark); margin-bottom: 6px; line-height: 1.3; }
+.task-title { font-weight: 600; font-size: 13px; color: var(--text-dark); margin-bottom: 6px; line-height: 1.3; white-space: normal; overflow-wrap: anywhere; }
+.task-due { font-size: 11px; font-weight: 600; color: var(--text-light); margin-bottom: 4px; }
+.task-due.overdue { color: #ef4444; }
+
+/* ტასკის კომენტარები — ყოველ ავტორს თავისი მუდმივი ფერი (--c-bg / --c-border ინლაინ) */
+.task-comment { background: var(--c-bg); border-left: 3px solid var(--c-border); }
+.task-comment .comment-meta b { color: var(--c-border); }
+.task-comment-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .task-meta { font-size: 11px; color: var(--text-light); display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 6px; margin-top: 4px; }
 
 .checklist-item { display: flex; align-items: center; gap: 8px; padding: 6px; border-bottom: 1px solid #f1f5f9; }
