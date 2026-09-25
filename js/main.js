@@ -92,8 +92,10 @@ if (!isLocalMode) {
     // long-polling WebChannel-ის ნაცვლად: tracking prevention / ad blocker-ების მქონე ბრაუზერებში
     // WebChannel იბლოკება და Firestore "client is offline" შეცდომას აბრუნებს.
     // settings() უნდა გამოიძახოს ნებისმიერ სხვა Firestore ოპერაციამდე (enablePersistence-ის ჩათვლით).
-    // merge: true — ნაგულისხმევი host შენარჩუნდება და SDK-ის "overriding the original host" გაფრთხილება აღარ ჩნდება
-    db.settings({ experimentalForceLongPolling: true, merge: true });
+    // ⚠️ merge: true არ დაამატოთ: ნაგულისხმევ experimentalAutoDetectLongPolling: true-სთან შერწყმისას SDK შეცდომას
+    // აგდებს ("cannot be used together") და აპლიკაცია არ ჩაიტვირთება. კონსოლის გაფრთხილება
+    // "You are overriding the original host" ამ გამოძახებით მოსალოდნელია და უვნებელია.
+    db.settings({ experimentalForceLongPolling: true });
 
     // ლოკალური (IndexedDB) cache: მეორედ შესვლისას მონაცემები მყისიერად იტვირთება cache-იდან
     // და ფონზე სინქრონდება მხოლოდ ცვლილებები.
