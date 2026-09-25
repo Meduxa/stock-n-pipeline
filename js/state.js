@@ -2,7 +2,7 @@
    🗂 აპლიკაციის გლობალური მდგომარეობა
    ========================================== */
 let isLocalMode = firebaseConfig.apiKey === "YOUR_API_KEY";
-let db, auth, currentUser = null;
+let db, auth, storage, currentUser = null;
 let isAdmin = false;
 let unsubscribeLeads = null;
 let unsubscribeTasks = null;

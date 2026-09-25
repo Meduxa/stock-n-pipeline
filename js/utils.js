@@ -74,6 +74,72 @@ function readAttachment(file, onLoad) {
     return true;
 }
 
+/* ---------- Firebase Storage-ში შენახული ფაილები ----------
+   ფაილის ჩანაწერის სამი ფორმა არსებობს:
+   - { name, path, size, contentType, amount }  — Storage-ში (ახალი ფორმატი)
+   - { name, data, amount }                      — Firestore-ში ჩაშენებული data: URL (ძველი ფორმატი)
+   - { name, blob, amount, pending: true }       — ჯერ არ ატვირთულა, მხოლოდ მეხსიერებაში, ბაზაში არ იწერება */
+
+// "ფაილის გადმოწერა" ორიგინალი (ქართული) სახელით — Storage-ის ბმული სხვა დომენზეა და <a download> არ მუშაობს
+function attachmentDisposition(name) {
+    return `attachment; filename*=UTF-8''${encodeURIComponent(name)}`;
+}
+
+// Storage-ის ობიექტის სახელი: უნიკალური პრეფიქსი + სახელი ბილიკისთვის სახიფათო სიმბოლოების გარეშე
+function storageObjectName(name) {
+    const safe = String(name || 'file').replace(/[\/\\#?\[\]*\x00-\x1f]/g, '_').slice(0, 150);
+    return `${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${safe}`;
+}
+
+function uploadToStorage(folder, name, blob, contentType) {
+    const path = `${folder}/${storageObjectName(name)}`;
+    const type = contentType || blob.type || 'application/octet-stream';
+    return storage.ref(path)
+        .put(blob, { contentType: type, contentDisposition: attachmentDisposition(name) })
+        .then(() => ({ name, path, size: blob.size, contentType: type }));
+}
+
+// მოლოდინში მყოფი ფაილების ატვირთვა. files — ბაზაში ჩასაწერი სია (ძველი/უკვე ატვირთული ჩანაწერები უცვლელია),
+// uploadedPaths — ახლად ატვირთულები, რომ ბაზაში ჩაწერის ჩავარდნისას წაიშალოს.
+// ატვირთვის შეცდომისას უკვე ატვირთულ ფაილებს თვითონ შლის, რომ Storage-ში ობოლი ობიექტები არ დარჩეს.
+async function uploadPendingFiles(folder, files) {
+    const uploaded = [];
+    try {
+        const result = [];
+        for (const f of files) {
+            if (!f.pending) { result.push(f); continue; }
+            const stored = await uploadToStorage(folder, f.name, f.blob);
+            uploaded.push(stored.path);
+            result.push({ ...stored, amount: f.amount || 0 });
+        }
+        return { files: result, uploadedPaths: uploaded };
+    } catch (err) {
+        deleteStoredFiles(uploaded);
+        throw err;
+    }
+}
+
+// Storage-იდან წაშლა — "საუკეთესო მცდელობით": ჩავარდნა მხოლოდ ლოგდება (ობოლი ფაილი, და არა მონაცემის დაკარგვა)
+function deleteStoredFiles(paths) {
+    paths.forEach(p => storage.ref(p).delete().catch(err => console.warn('Storage-იდან წაშლა ვერ მოხერხდა:', p, err)));
+}
+
+// გადმოწერის ბმული მოთხოვნისას იქმნება, რომ Storage-ის წესებმა ყოველ ჯერზე შეამოწმოს წვდომა
+function openStoredFile(event, path) {
+    event.preventDefault();
+    storage.ref(path).getDownloadURL().then(url => {
+        const a = document.createElement('a');
+        a.href = url;
+        a.rel = 'noopener';
+        a.click();
+    }).catch(err => {
+        console.error('ფაილის გახსნა ვერ მოხერხდა:', path, err);
+        alert(err && err.code === 'storage/unauthorized'
+            ? 'ამ ფაილზე წვდომა არ გაქვთ.'
+            : 'ფაილის გახსნა ვერ მოხერხდა: ' + (err && err.message ? err.message : err));
+    });
+}
+
 // კონტრაგენტის სათაური ინვოისზე / შეთავაზებაზე / შეკვეთაზე ("სახელი (ს/კ: 123)" ფორმატიდან)
 function renderClientHeader(inputId, displayId) {
     const val = document.getElementById(inputId).value;

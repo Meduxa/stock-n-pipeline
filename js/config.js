@@ -15,7 +15,7 @@ const firebaseConfig = {
 };
 
 // UI-ში ადმინის ფუნქციების ჩვენება. ⚠️ ეს მხოლოდ ინტერფეისს მართავს —
-// იგივე სია უნდა იყოს firestore.rules-ში, წინააღმდეგ შემთხვევაში დაცვა არ მუშაობს.
+// იგივე სია უნდა იყოს firestore.rules-სა და storage.rules-ში, წინააღმდეგ შემთხვევაში დაცვა არ მუშაობს.
 const ADMIN_EMAILS = ["levan.medoshvili@gmail.com", "tornike.a@tbilisimedic.ge", "beqa.b@tbilisimedic.ge"];
 
 const STORAGE_BASE_URL = "https://firebasestorage.googleapis.com/v0/b/stockpipeline-2c77b.firebasestorage.app/o/products%2F";
@@ -37,5 +37,8 @@ const COMPANY = {
 const DEFAULT_USD_RATE = 2.75;
 
 // Firestore-ის დოკუმენტის ლიმიტი 1MB-ია და ფაილები base64-ით ~33%-ით იზრდება,
-// ამიტომ ერთი მიმაგრებული ფაილი ამაზე დიდი ვერ იქნება.
+// ამიტომ ერთი მიმაგრებული ფაილი ამაზე დიდი ვერ იქნება. (ლოკალური რეჟიმი და ტასკები)
 const MAX_ATTACHMENT_BYTES = 600 * 1024;
+
+// ლიდის ფაილები Firebase Storage-ში ინახება — იგივე ლიმიტი უნდა იყოს storage.rules-ში (validUpload).
+const MAX_STORAGE_UPLOAD_BYTES = 10 * 1024 * 1024;

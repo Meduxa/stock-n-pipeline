@@ -87,6 +87,7 @@ if (!isLocalMode) {
     firebase.initializeApp(firebaseConfig);
     auth = firebase.auth();
     db = firebase.firestore();
+    storage = firebase.storage();
 
     // long-polling WebChannel-ის ნაცვლად: tracking prevention / ad blocker-ების მქონე ბრაუზერებში
     // WebChannel იბლოკება და Firestore "client is offline" შეცდომას აბრუნებს.

@@ -3,7 +3,7 @@ rules_version = '2';
 // Server-side access control for the app. The ADMIN_EMAILS list in js/config.js only
 // hides UI — without these rules any signed-in user can read/write everything via the SDK.
 // Deploy:  firebase deploy --only firestore:rules   (or paste into Firebase Console → Firestore → Rules)
-// Keep the admin list below in sync with ADMIN_EMAILS in js/config.js.
+// Keep the admin list below in sync with ADMIN_EMAILS in js/config.js and storage.rules.
 service cloud.firestore {
   match /databases/{database}/documents {
 

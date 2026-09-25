@@ -185,6 +185,8 @@ function updateLeadInDB(id, fields) {
    ========================================== */
 let currentEditingLead = null;
 let tempFiles = [];
+let removedStoredPaths = []; // Storage-იდან წასაშლელი ფაილები — იშლება მხოლოდ ლიდის წარმატებით შენახვის შემდეგ
+let leadSaving = false;
 
 function openLeadModal(leadId = null) {
     document.getElementById('leadModal').style.display = 'flex';
@@ -192,6 +194,7 @@ function openLeadModal(leadId = null) {
     document.getElementById('leadFileUpload').value = '';
     document.getElementById('leadManagerSection').style.display = isAdmin ? 'block' : 'none';
     tempFiles = [];
+    removedStoredPaths = [];
 
     const sourceLead = leadId ? leadsData.find(l => l.id === leadId) : null;
 
@@ -245,17 +248,40 @@ function closeLeadModal() {
 function handleLeadFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-    readAttachment(file, f => {
-        tempFiles.push({ ...f, amount: 0 });
-        renderLeadFiles(tempFiles);
-    });
     event.target.value = '';
+
+    // ლოკალურ რეჟიმში Storage არ არის — ფაილი ისევ data: URL-ად ინახება
+    if (isLocalMode) {
+        readAttachment(file, f => {
+            tempFiles.push({ ...f, amount: 0 });
+            renderLeadFiles(tempFiles);
+        });
+        return;
+    }
+    if (file.size >= MAX_STORAGE_UPLOAD_BYTES) {
+        alert(`ფაილი ძალიან დიდია (${(file.size / 1048576).toFixed(1)} MB). მაქსიმალური ზომაა ${MAX_STORAGE_UPLOAD_BYTES / 1048576} MB.`);
+        return;
+    }
+    // ატვირთვა ხდება შენახვისას, რომ ფანჯრის გაუქმებისას Storage-ში ობოლი ფაილები არ დარჩეს
+    tempFiles.push({ name: file.name, blob: file, amount: 0, pending: true });
+    renderLeadFiles(tempFiles);
+}
+
+function fileBadgeLink(f) {
+    const style = "color:var(--primary); font-size:12px; text-decoration:none; font-weight:600;";
+    if (f.pending) {
+        return `<span style="color:#64748b; font-size:12px; font-weight:600;" title="აიტვირთება შენახვისას">⏳ ${escapeHtml(f.name)}</span>`;
+    }
+    if (f.path) {
+        return `<a href="#" onclick="openStoredFile(event, ${jsArg(f.path)})" style="${style}">📎 ${escapeHtml(f.name)}</a>`;
+    }
+    return `<a href="${safeFileHref(f.data)}" download="${escapeHtml(f.name)}" style="${style}">📎 ${escapeHtml(f.name)}</a>`;
 }
 
 function renderFileBadges(files, removeFn) {
     return files.map((f, i) => `
         <div style="display:inline-flex; align-items:center; gap:8px; background:#e2f0eb; padding:6px 10px; border-radius:6px; border:1px solid #a7d8c6;">
-            <a href="${safeFileHref(f.data)}" download="${escapeHtml(f.name)}" style="color:var(--primary); font-size:12px; text-decoration:none; font-weight:600;">📎 ${escapeHtml(f.name)}</a>
+            ${fileBadgeLink(f)}
             <span style="cursor:pointer; color:#ef4444; font-size:14px; font-weight:bold;" onclick="${removeFn}(${i})" title="ფაილის წაშლა">✕</span>
         </div>
     `).join('');
@@ -274,6 +300,7 @@ function removeTempFile(index) {
         const currentAmt = parseFloat(document.getElementById('leadAmount').value) || 0;
         document.getElementById('leadAmount').value = Math.max(0, currentAmt - removedFile.amount).toFixed(2);
     }
+    if (removedFile && removedFile.path) removedStoredPaths.push(removedFile.path);
     tempFiles.splice(index, 1);
     renderLeadFiles(tempFiles);
 }
@@ -323,7 +350,8 @@ function addLeadNote() {
     document.getElementById('leadNote').value = '';
 }
 
-function saveLead() {
+async function saveLead() {
+    if (leadSaving) return;
     const id = document.getElementById('leadId').value;
     const data = {
         clinic: document.getElementById('leadClinic').value.trim(),
@@ -333,7 +361,6 @@ function saveLead() {
         stage: document.getElementById('leadStage').value,
         followUpDate: document.getElementById('leadFollowUp').value,
         updatedAt: new Date().toISOString(),
-        files: tempFiles,
         fileName: null,
         fileData: null
     };
@@ -347,22 +374,61 @@ function saveLead() {
 
     if (id) {
         data.history = currentEditingLead ? currentEditingLead.history : [];
-        updateLeadInDB(id, data).then(closeLeadModal, () => {});
-        return;
+    } else {
+        data.userId = currentUser ? currentUser.uid : "local_user_1";
+        data.history = [{ date: nowStamp(), text: "შეიქმნა ლიდი", author: "სისტემა" }];
+        data.createdAt = data.updatedAt;
     }
 
-    data.userId = currentUser ? currentUser.uid : "local_user_1";
-    data.history = [{ date: nowStamp(), text: "შეიქმნა ლიდი", author: "სისტემა" }];
-    data.createdAt = data.updatedAt;
-
     if (isLocalMode) {
+        data.files = tempFiles;
+        if (id) {
+            updateLeadInDB(id, data).then(closeLeadModal, () => {});
+            return;
+        }
         data.id = "lead_" + Date.now();
         localLeads.push(data);
         localStorage.setItem('stock_pipeline_leads', JSON.stringify(localLeads));
         closeLeadModal();
         renderPipeline();
-    } else {
-        db.collection("leads").add(data).then(closeLeadModal).catch(reportSaveError);
+        return;
+    }
+
+    leadSaving = true;
+    let leadId = id;
+    let uploadedPaths = [];
+    try {
+        if (!leadId) {
+            // ახალი ლიდი ჯერ ფაილების გარეშე იქმნება: Storage-ის წესები ატვირთვისას ლიდის მფლობელს Firestore-იდან ამოწმებს
+            const ref = db.collection("leads").doc();
+            await ref.set({ ...data, files: [] });
+            leadId = ref.id;
+            // განმეორებითი შენახვა (მაგ. ატვირთვის ჩავარდნის შემდეგ) ამ ლიდს განაახლებს და დუბლიკატს არ შექმნის
+            document.getElementById('leadId').value = leadId;
+            currentEditingLead = { ...data, id: leadId, files: [] };
+        }
+
+        const uploaded = await uploadPendingFiles(`leads/${leadId}`, tempFiles);
+        uploadedPaths = uploaded.uploadedPaths;
+        if (id) {
+            await db.collection("leads").doc(leadId).update({ ...data, files: uploaded.files });
+        } else if (uploadedPaths.length) {
+            await db.collection("leads").doc(leadId).update({ files: uploaded.files });
+        }
+
+        deleteStoredFiles(removedStoredPaths);
+        closeLeadModal();
+    } catch (err) {
+        deleteStoredFiles(uploadedPaths);
+        if (!id && leadId) {
+            console.error("ფაილების ატვირთვა ვერ მოხერხდა:", err);
+            alert("ლიდი შეინახა, მაგრამ ფაილების ატვირთვა ვერ მოხერხდა: " + (err && err.message ? err.message : err) +
+                "\n\nსცადეთ ხელახლა შენახვა.");
+        } else {
+            reportSaveError(err);
+        }
+    } finally {
+        leadSaving = false;
     }
 }
 
@@ -373,18 +439,24 @@ function extractLeadId(inputValue) {
 
 /* ---------- ინვოისის / შეთავაზების / შეკვეთის ლიდზე მიბმა ---------- */
 // amount: რიცხვითი ჯამი (არა ეკრანიდან წაკითხული ტექსტი, რომელიც ქართულ ფორმატში "1234,50" ჩანს)
-function attachDocumentToLead({ inputId, printAreaId, filePrefix, amount, historyText, emptyMsg, successMsg, onDone }) {
+async function attachDocumentToLead({ inputId, printAreaId, filePrefix, amount, historyText, emptyMsg, successMsg, onDone }) {
     const leadId = extractLeadId(document.getElementById(inputId).value);
     if (!leadId) { alert(emptyMsg); return; }
 
     const lead = leadsData.find(l => l.id === leadId);
     if (!lead) { alert("ლიდი ვერ მოიძებნა. განაახლეთ სია და სცადეთ თავიდან."); return; }
 
-    const file = {
-        name: `${filePrefix}_${localISODate()}_${Date.now()}.html`,
-        data: "data:text/html;charset=utf-8," + encodeURIComponent(document.getElementById(printAreaId).innerHTML),
-        amount: amount
-    };
+    const name = `${filePrefix}_${localISODate()}_${Date.now()}.html`;
+    const html = document.getElementById(printAreaId).innerHTML;
+    let file;
+    try {
+        file = isLocalMode
+            ? { name, data: "data:text/html;charset=utf-8," + encodeURIComponent(html), amount }
+            : { ...(await uploadToStorage(`leads/${leadId}`, name, new Blob([html], { type: 'text/html;charset=utf-8' }))), amount };
+    } catch (err) {
+        reportSaveError(err);
+        return;
+    }
     const fields = {
         amount: (parseFloat(lead.amount) || 0) + amount,
         files: [...(lead.files || []), file],
@@ -398,7 +470,9 @@ function attachDocumentToLead({ inputId, printAreaId, filePrefix, amount, histor
     updateLeadInDB(leadId, fields).then(() => {
         alert(successMsg);
         onDone();
-    }, () => {});
+    }, () => {
+        if (file.path) deleteStoredFiles([file.path]);
+    });
 }
 
 function attachInvoiceToLead() {
