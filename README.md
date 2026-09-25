@@ -2,7 +2,7 @@
 
 Internal tool for stock pricing, invoices/offers/orders, a sales pipeline (Kanban), a task backlog,
 contract generation (Word export) and sales analytics. Static site — no build step — backed by
-Firebase Auth + Firestore.
+Firebase Auth + Firestore, with lead attachments in Firebase Storage.
 
 ## Structure
 
@@ -24,6 +24,7 @@ js/contracts.js     Contract templates + Word export
 js/analytics.js     Charts
 js/main.js          Auth + app bootstrap (must load last)
 firestore.rules     Firestore security rules (see below)
+storage.rules       Firebase Storage security rules (see below)
 ```
 
 Scripts are plain (non-module) scripts sharing the global scope, because the markup uses inline
@@ -39,8 +40,10 @@ npx serve .        # or: python -m http.server
 
 ## Security notes
 
-- **Deploy `firestore.rules`.** The admin check in the UI (`ADMIN_EMAILS`) only hides buttons.
-  Real enforcement must happen in Firestore rules; keep both admin lists in sync.
+- **Deploy `firestore.rules` and `storage.rules`.** The admin check in the UI (`ADMIN_EMAILS`) only hides
+  buttons. Real enforcement happens in the rules; keep all three admin lists in sync. Storage rules
+  check lead ownership via `firestore.get()`, which needs the `rules_version = '2';` line and the
+  Storage → Firestore permission the Console asks for on first publish.
 - The Firebase web API key in `js/config.js` is not a secret — access is controlled by Auth + rules.
   Consider restricting the key to your domain in Google Cloud Console → Credentials.
 - All data rendered into HTML goes through `escapeHtml` / `jsArg`; attachment links only allow
@@ -50,8 +53,10 @@ npx serve .        # or: python -m http.server
 
 ## Known limitations / next steps
 
-- Lead/task attachments are stored as base64 inside Firestore documents (1 MB document limit,
-  attachments capped at 600 KB each). Moving them to Firebase Storage would remove the limit and make
-  the pipeline load much faster, since every lead snapshot currently downloads all attachments.
+- Lead attachments are uploaded to Firebase Storage (`leads/{leadId}/`, max 10 MB) and referenced by
+  `path`; download URLs are fetched on click. Older leads may still hold embedded `data:` URLs until
+  the one-time migration has run — the UI supports both formats.
+- Task attachments (and everything in local mode) are still embedded as base64 in Firestore
+  (1 MB document limit, 600 KB per file).
 - `appData/stock`, `appData/salesHistory` etc. are single documents and share the same 1 MB limit;
   a large sales history should be split into a collection.
