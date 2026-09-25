@@ -69,7 +69,7 @@ function handleLogin(event) {
 
 function handleLogout() {
     if (isLocalMode) { location.reload(); return; }
-    auth.signOut().then(() => location.reload());
+    auth.signOut().then(() => location.reload(), err => console.error("Logout failed:", err));
 }
 
 // Escape ხურავს ზედა (ყველაზე მაღალი z-index-ის) ღია ფანჯარას
@@ -92,7 +92,8 @@ if (!isLocalMode) {
     // long-polling WebChannel-ის ნაცვლად: tracking prevention / ad blocker-ების მქონე ბრაუზერებში
     // WebChannel იბლოკება და Firestore "client is offline" შეცდომას აბრუნებს.
     // settings() უნდა გამოიძახოს ნებისმიერ სხვა Firestore ოპერაციამდე (enablePersistence-ის ჩათვლით).
-    db.settings({ experimentalForceLongPolling: true });
+    // merge: true — ნაგულისხმევი host შენარჩუნდება და SDK-ის "overriding the original host" გაფრთხილება აღარ ჩნდება
+    db.settings({ experimentalForceLongPolling: true, merge: true });
 
     // ლოკალური (IndexedDB) cache: მეორედ შესვლისას მონაცემები მყისიერად იტვირთება cache-იდან
     // და ფონზე სინქრონდება მხოლოდ ცვლილებები.
