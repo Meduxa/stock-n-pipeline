@@ -151,12 +151,20 @@ function updateUsdPrice(code, newUsdPrice) {
     renderCalc();
 }
 
-function updateItemName(code, newName) {
+// დასახელება / ბრენდი / მოდელი — მხოლოდ ამ დოკუმენტში იცვლება, სტოკის პროდუქტი უცვლელი რჩება
+const EDITABLE_FIELD_FALLBACK = { name: '-', brand: '', model: '' };
+
+function updateItemField(code, field, el) {
     const item = findCalcItem(code);
-    const name = newName.trim() || '-';
-    if (!item || item.name === name) return;
-    item.name = name;
+    if (!item) return;
+    const value = el.innerText.trim() || EDITABLE_FIELD_FALLBACK[field];
+    if (item[field] === value) { el.textContent = value; return; } // ბრაუზერის დატოვებული <br>-ის მოშორება (:empty placeholder-ისთვის)
+    item[field] = value;
     renderCalc();
+}
+
+function editableFieldHtml(code, field, value, placeholder, style = '') {
+    return `<div class="editable-text" contenteditable="true" data-placeholder="${escapeHtml(placeholder)}" title="შეცვლა (მხოლოდ ამ დოკუმენტში)" style="${style}" onkeydown="if (event.key === 'Enter') { event.preventDefault(); this.blur(); }" onblur="updateItemField(${code}, '${field}', this)">${escapeHtml(value)}</div>`;
 }
 
 function removeCalcItem(code) { calcItems = calcItems.filter(i => i.code !== code); renderCalc(); }
@@ -183,8 +191,8 @@ function renderCalc() {
             <tr>
                 <td>${productImageHtml(item.code)}</td>
                 <td class="hide-on-pdf" style="font-weight: 600;">#${escapeHtml(item.code)}</td>
-                <td><div class="editable-name" contenteditable="true" title="დასახელების შეცვლა (მხოლოდ ამ დოკუმენტში)" onkeydown="if (event.key === 'Enter') { event.preventDefault(); this.blur(); }" onblur="updateItemName(${code}, this.innerText)">${escapeHtml(item.name)}</div></td>
-                <td>${escapeHtml(item.brand)}<br><span style="font-size:11px; color:#64748b;">${escapeHtml(item.model)}</span></td>
+                <td>${editableFieldHtml(code, 'name', item.name, 'დასახელება', 'font-weight: 600;')}</td>
+                <td>${editableFieldHtml(code, 'brand', item.brand, 'ბრენდი')}${editableFieldHtml(code, 'model', item.model, 'მოდელი', 'font-size:11px; color:#64748b; margin-top:3px;')}</td>
                 <td class="text-left" style="font-size:12px; line-height: 1.4;">${escapeHtml(item.features)}</td>
                 <td><input type="number" class="editable-price" value="${price > 0 ? price : ''}" placeholder="ფასი" step="1" onchange="updateCustomPrice(${code}, this.value)"></td>
                 <td><div style="display:flex; align-items:center; justify-content:center; gap:2px;"><span style="color: #64748b; font-weight: 600;">$</span><input type="number" class="editable-price" style="color:#64748b; border-color:#cbd5e1;" value="${usdPrice > 0 ? usdPrice : ''}" step="1" onchange="updateUsdPrice(${code}, this.value)"></div></td>

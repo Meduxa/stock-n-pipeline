@@ -153,8 +153,9 @@ input[type="number"] { -moz-appearance: textfield; }
 .prod-img-placeholder { font-size: 11px; color: #94a3b8; text-align: center; line-height: 1.2; }
 
 .editable-price { width: 100%; max-width: 85px; padding: 4px 5px; font-size: 13px; border: 1px solid var(--primary); border-radius: 4px; font-weight: 600; color: var(--primary); text-align: center; box-sizing: border-box; }
-.editable-name { min-height: 18px; padding: 4px 5px; border: 1px dashed #cbd5e1; border-radius: 4px; font-weight: 600; outline: none; cursor: text; }
-.editable-name:focus { border: 1px solid var(--primary); background: #f0fdf9; }
+.editable-text { min-height: 18px; padding: 4px 5px; border: 1px dashed #cbd5e1; border-radius: 4px; outline: none; cursor: text; }
+.editable-text:empty::before { content: attr(data-placeholder); color: #94a3b8; font-weight: normal; }
+.editable-text:focus { border: 1px solid var(--primary); background: #f0fdf9; }
 
 .qty-controls { display: inline-flex; align-items: center; justify-content: center; gap: 3px; background: #f8fafc; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border); }
 .qty-btn { background: #fff; border: 1px solid var(--border); width: 18px; height: 18px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: center; padding: 0;}
@@ -315,7 +316,8 @@ input[type="number"] { -moz-appearance: textfield; }
     #invoicePrintArea, .order-print-area { border: none; overflow: visible; padding: 0; }
 
     .editable-price { border: none !important; background: transparent !important; padding: 0 !important; box-shadow: none !important; text-align: center; width: 100% !important; max-width: none !important; pointer-events: none; color: #000 !important; font-size: 13px !important; }
-    .editable-name { border: none !important; background: transparent !important; padding: 0 !important; }
+    .editable-text { border: none !important; background: transparent !important; padding: 0 !important; min-height: 0 !important; }
+    .editable-text:empty::before { content: none; }
     .qty-controls { border: none !important; background: transparent !important; padding: 0 !important; }
     .calc-table th { background-color: #e2e8f0 !important; color: #000 !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
