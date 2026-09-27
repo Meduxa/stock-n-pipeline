@@ -574,7 +574,11 @@ async function attachDocumentToLead({ inputId, printAreaId, filePrefix, amount, 
     if (!lead) { alert("ლიდი ვერ მოიძებნა. განაახლეთ სია და სცადეთ თავიდან."); return; }
 
     const name = `${filePrefix}_${localISODate()}_${Date.now()}.html`;
-    const html = document.getElementById(printAreaId).innerHTML;
+    // მიმაგრებულ ასლში, PDF-ის მსგავსად, არ ხვდება მხოლოდ ეკრანისთვის განკუთვნილი სვეტები/ღილაკები (კოდი, მარჟა, წაშლა)
+    const snapshot = document.getElementById(printAreaId).cloneNode(true);
+    snapshot.querySelectorAll('.hide-on-pdf').forEach(el => el.remove());
+    snapshot.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+    const html = snapshot.innerHTML;
     let file;
     try {
         file = isLocalMode
@@ -606,21 +610,10 @@ function attachInvoiceToLead() {
     attachDocumentToLead({
         inputId: 'invoiceLeadTarget', printAreaId: 'invoicePrintArea', filePrefix: 'ინვოისი',
         amount: calcTotal,
-        historyText: `მიმაგრდა ახალი ინვოისი (თანხა დაემატა: ${calcTotal} ₾)`,
+        historyText: `მიმაგრდა ახალი ინვოისი/კომერციული შეთავაზება (თანხა დაემატა: ${calcTotal} ₾)`,
         emptyMsg: "გთხოვთ აირჩიოთ ლიდი სიიდან!",
-        successMsg: "ინვოისი წარმატებით მიმაგრდა არჩეულ ლიდს და თანხა დაჯამდა!",
+        successMsg: "ინვოისი/კომერციული შეთავაზება წარმატებით მიმაგრდა არჩეულ ლიდს და თანხა დაჯამდა!",
         onDone: closeInvoice
-    });
-}
-
-function attachOfferToLead() {
-    attachDocumentToLead({
-        inputId: 'offerLeadTarget', printAreaId: 'offerPrintArea', filePrefix: 'შეთავაზება',
-        amount: offerTotal,
-        historyText: `მიმაგრდა ახალი შეთავაზება (თანხა დაემატა: ${offerTotal} ₾)`,
-        emptyMsg: "გთხოვთ აირჩიოთ ლიდი სიიდან!",
-        successMsg: "შეთავაზება წარმატებით მიმაგრდა არჩეულ ლიდს და თანხა დაჯამდა!",
-        onDone: closeOfferModal
     });
 }
 

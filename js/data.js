@@ -138,7 +138,6 @@ function updateUsdRate(val) {
     // 0 ან უარყოფითი კურსი დოლარის ფასებს Infinity-ად აქცევდა
     currentUsdRate = rate > 0 ? rate : DEFAULT_USD_RATE;
     renderCalc();
-    renderOfferTable();
 
     if (!isLocalMode && isAdmin) {
         db.collection("appData").doc("settings").set({ usdRate: currentUsdRate }, { merge: true })

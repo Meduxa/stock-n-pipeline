@@ -23,7 +23,6 @@
     <script defer src="js/data.js"></script>
     <script defer src="js/stock.js"></script>
     <script defer src="js/invoice.js"></script>
-    <script defer src="js/offer.js"></script>
     <script defer src="js/order.js"></script>
     <script defer src="js/pipeline.js"></script>
     <script defer src="js/backlog.js"></script>
@@ -90,8 +89,7 @@
     <!-- Toolbar -->
     <div class="toolbar">
         <input type="text" id="searchInput" placeholder="მოძებნე დასახელება, ბრენდი ან კოდი..." oninput="debouncedUpdateUI()">
-        <button class="btn-calc" style="background:#BA7517;" onclick="openOfferModal()">🤝 შეთავაზება</button>
-        <button class="btn-calc" onclick="openInvoice()">📄 ინვოისის შექმნა</button>
+        <button class="btn-calc" onclick="openInvoice()">📄 კომერციული შეთავაზება</button>
         <button class="btn-calc" style="background:#8b5cf6;" onclick="openOrderModal()">📦 შეკვეთა</button>
         <button class="btn-calc" style="background:#3b82f6; margin-left:10px;" onclick="openPipeline()">📊 მილსადენი</button>
 
@@ -485,14 +483,16 @@
 <div class="modal-overlay" id="invoiceModal">
     <div class="modal">
         <div class="modal-header">
-            <span>📄 კომერციული შეთავაზება / ინვოისი</span>
+            <span>📄 ინვოისი/კომერციული შეთავაზება</span>
             <div class="close-btn" onclick="closeInvoice()">✕</div>
         </div>
         <div class="invoice-controls">
             <div class="live-search-container hide-on-pdf">
-                <input type="text" id="invoiceLiveSearch" placeholder="🔍 დაამატე პროდუქტი კოდით ან სახელით..." oninput="handleInvoiceSearch()" style="width: 100%; box-sizing: border-box;">
+                <input type="text" id="invoiceLiveSearch" placeholder="🔍 სტოკიდან: კოდი ან სახელი / ან ახალი კოდი" oninput="handleInvoiceSearch()" onkeydown="if (event.key === 'Enter') addCustomItem()" style="width: 100%; box-sizing: border-box;">
                 <div id="invoiceSearchResults" class="live-search-results"></div>
             </div>
+            <input type="text" id="invoiceCustomName" placeholder="დასახელება (სტოკს გარეშე პროდუქტისთვის)" onkeydown="if (event.key === 'Enter') addCustomItem()" style="flex: 1;">
+            <button class="btn-calc" onclick="addCustomItem()">➕ დამატება</button>
 
             <input type="text" id="invoiceClientSearch" list="clientsDatalist" placeholder="🔍 მოძებნეთ კლინიკა ან ს/კ..." onchange="updateInvoiceHeader()" style="flex: 1;">
 
@@ -504,7 +504,7 @@
         <div id="invoicePrintArea">
             <div class="invoice-header-info">
                 <div>
-                    <h2 style="margin: 0 0 10px 0; color: var(--primary);">INVOICE / ინვოისი</h2>
+                    <h2 style="margin: 0 0 10px 0; color: var(--primary);">ინვოისი/კომერციული შეთავაზება</h2>
                     <p style="margin: 0 0 5px 0; color: var(--text-light);">ინვოისის #: <span id="invNumber" style="font-weight: 600; color: var(--text-dark);"></span></p>
                     <p style="margin: 0; color: var(--text-light);">თარიღი: <span id="invDate"></span></p>
                 </div>
@@ -517,10 +517,11 @@
                <thead>
                     <tr>
                         <th style="width: 8%;">სურათი</th>
+                        <th class="hide-on-pdf" style="width: 7%;">კოდი</th>
                         <th style="width: 13%;">დასახელება</th>
-                        <th style="width: 10%;">ბრენდი, მოდელი</th>
-                        <th style="width: 22%;">მახასიათებლები</th>
-                        <th style="width: 8%;">ფასი (₾)</th>
+                        <th style="width: 9%;">ბრენდი, მოდელი</th>
+                        <th style="width: 18%;">მახასიათებლები</th>
+                        <th style="width: 7%;">ფასი (₾)</th>
                         <th style="width: 7%;">ფასი ($)</th>
                         <th style="width: 6%;">რაოდ.</th>
                         <th style="width: 8%;">ჯამი (₾)</th>
@@ -543,72 +544,6 @@
                 ინვოისი ვალიდურია 10 დღის მანძილზე
             </div>
 
-            <div class="invoice-footer">
-                <div class="bank-details"><!-- ივსება main.js-ით (COMPANY) --></div>
-                <div class="stamp-box"><img src="https://firebasestorage.googleapis.com/v0/b/stockpipeline-2c77b.firebasestorage.app/o/products%2Fstamp.png?alt=media" onerror="imageFallbackStamp(this)" alt="ბეჭედი"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Offer Modal -->
-<div class="modal-overlay" id="offerModal">
-    <div class="modal">
-        <div class="modal-header">
-            <span>🤝 პოტენციური შეთავაზების ფორმა</span>
-            <div class="close-btn" onclick="closeOfferModal()">✕</div>
-        </div>
-        <div class="invoice-controls">
-            <div class="live-search-container hide-on-pdf" style="width: 130px; flex: none;">
-                <input type="text" id="offerCodeInput" placeholder="პროდუქტის კოდი" oninput="handleOfferSearch()" style="width: 100%; box-sizing: border-box;">
-                <div id="offerSearchResults" class="live-search-results"></div>
-            </div>
-            <input type="text" id="offerNameInput" placeholder="დასახელება და ბრენდი" style="flex: 1;">
-            <button class="btn-calc" onclick="addOfferItem()">➕ დამატება</button>
-
-            <input type="text" id="offerClientSearch" list="clientsDatalist" placeholder="🔍 მოძებნეთ კლინიკა ან ს/კ..." onchange="updateOfferHeader()" style="flex: 1;">
-
-            <input type="text" id="offerLeadTarget" list="leadsDatalist" placeholder="🔍 მოძებნეთ და მიაბით ლიდს..." style="flex: 1;">
-
-            <button class="btn-calc" style="background:#3b82f6; padding:10px 15px;" onclick="attachOfferToLead()">🔗 ლიდზე მიბმა</button>
-            <button class="btn-pdf" onclick="generateOfferPDF()">📥 PDF</button>
-        </div>
-        <div class="offer-print-area" id="offerPrintArea">
-            <div class="invoice-header-info">
-                <div>
-                    <h2 style="margin: 0 0 10px 0; color: var(--primary);">OFFER / კომერციული შეთავაზება</h2>
-                    <p style="margin: 0; color: var(--text-light);">თარიღი: <span id="offerDate"></span></p>
-                </div>
-                <div class="client-info" id="offerClientDisplay">
-                    <h3>კონტრაგენტი არ არის არჩეული</h3>
-                    <p>ს/კ: -</p>
-                </div>
-            </div>
-            <table class="calc-table">
-                <thead>
-                    <tr>
-                        <th style="width: 8%;">სურათი</th>
-                        <th style="width: 8%;">კოდი</th>
-                        <th style="width: 14%;">დასახელება</th>
-                        <th style="width: 17%;">მახასიათებლები</th>
-                        <th style="width: 8%;">ფასი (₾)</th>
-                        <th style="width: 7%;">ფასი ($)</th>
-                        <th style="width: 6%;">რაოდ.</th>
-                        <th style="width: 10%;">ჯამი (₾)</th>
-                        <th style="width: 8%;">ქვეყანა</th>
-                        <th style="width: 8%;">გარანტია</th>
-                        <th class="hide-on-pdf" style="width: 6%;">მარჟა</th>
-                        <th class="hide-on-pdf" style="width: 40px;">წაშლა</th>
-                    </tr>
-                </thead>
-                <tbody id="offerTableBody"></tbody>
-            </table>
-            <div class="calc-totals">
-                <div class="total-box">
-                    <div style="font-size: 14px; color: var(--text-light); text-transform: uppercase;">სულ გადასახდელი:</div>
-                    <span id="offerTotalAmount" style="color: var(--primary); font-size: 26px; font-weight: bold;">0 ₾</span>
-                </div>
-            </div>
             <div class="invoice-footer">
                 <div class="bank-details"><!-- ივსება main.js-ით (COMPANY) --></div>
                 <div class="stamp-box"><img src="https://firebasestorage.googleapis.com/v0/b/stockpipeline-2c77b.firebasestorage.app/o/products%2Fstamp.png?alt=media" onerror="imageFallbackStamp(this)" alt="ბეჭედი"></div>

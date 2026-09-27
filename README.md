@@ -8,14 +8,13 @@ Firebase Auth + Firestore, with lead attachments in Firebase Storage.
 
 ```
 index.html          Markup only; loads CSS and scripts (all `defer`, executed in order)
-css/styles.css      All styles, incl. print rules for invoice / offer / order PDFs
+css/styles.css      All styles, incl. print rules for invoice-offer / order PDFs
 js/config.js        Firebase config, admin list, company details, storage URLs, limits
 js/state.js         Shared global state
 js/utils.js         Escaping (escapeHtml, jsArg, safeFileHref), formatting, Excel/file readers, print helper
 js/data.js          Loading shared app data (stock, clients, features, targets, USD rate)
 js/stock.js         Stock grid, Excel uploads, Excel export
-js/invoice.js       Invoice builder
-js/offer.js         Commercial offer builder
+js/invoice.js       Invoice / commercial offer builder (stock or custom items)
 js/order.js         Warehouse order builder
 js/pipeline.js      Leads Kanban, lead modal, attaching documents to leads
 js/backlog.js       Tasks Kanban

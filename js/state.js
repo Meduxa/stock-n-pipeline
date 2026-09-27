@@ -23,7 +23,6 @@ let DATA = [];
 let PRODUCT_INDEX = new Map(); // code → product, სწრაფი ძიებისთვის
 let CLIENTS = [];
 let calcItems = [];
-let offerItems = [];
 let orderItems = [];
 let HISTORY_DATA = [];
 let AUX_DATA = {};

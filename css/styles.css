@@ -130,7 +130,7 @@ input[type="number"] { -moz-appearance: textfield; }
 .invoice-controls select, .invoice-controls input { padding: 10px; border-radius: 6px; border: 1px solid var(--border); outline: none; font-size: 14px; }
 .btn-pdf { background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; }
 
-/* Live Search Inside Invoice/Offer/Order */
+/* Live Search Inside Invoice/Order */
 .live-search-container { position: relative; flex: 1; min-width: 200px; }
 .live-search-results { position: absolute; top: 100%; left: 0; width: 100%; max-height: 220px; overflow-y: auto; background: white; border: 1px solid var(--primary); border-radius: 6px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); z-index: 1010; display: none; margin-top: 5px; }
 .search-item { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; font-size: 13px; align-items: center; }
@@ -138,7 +138,7 @@ input[type="number"] { -moz-appearance: textfield; }
 .search-item:hover { background: #e1f5ee; }
 .search-item-info { display: flex; flex-direction: column; gap: 3px; }
 
-#invoicePrintArea, .offer-print-area, .order-print-area { flex: 1; overflow-y: auto; padding: 20px; background: white; border: 1px solid var(--border); border-radius: 8px; }
+#invoicePrintArea, .order-print-area { flex: 1; overflow-y: auto; padding: 20px; background: white; border: 1px solid var(--border); border-radius: 8px; }
 .invoice-header-info { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 15px; }
 .client-info h3 { margin: 0 0 5px 0; color: var(--text-dark); text-align: right;}
 .client-info p { margin: 0; color: var(--text-light); font-size: 14px; text-align: right;}
@@ -153,6 +153,8 @@ input[type="number"] { -moz-appearance: textfield; }
 .prod-img-placeholder { font-size: 11px; color: #94a3b8; text-align: center; line-height: 1.2; }
 
 .editable-price { width: 100%; max-width: 85px; padding: 4px 5px; font-size: 13px; border: 1px solid var(--primary); border-radius: 4px; font-weight: 600; color: var(--primary); text-align: center; box-sizing: border-box; }
+.editable-name { min-height: 18px; padding: 4px 5px; border: 1px dashed #cbd5e1; border-radius: 4px; font-weight: 600; outline: none; cursor: text; }
+.editable-name:focus { border: 1px solid var(--primary); background: #f0fdf9; }
 
 .qty-controls { display: inline-flex; align-items: center; justify-content: center; gap: 3px; background: #f8fafc; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--border); }
 .qty-btn { background: #fff; border: 1px solid var(--border); width: 18px; height: 18px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: center; padding: 0;}
@@ -310,19 +312,17 @@ input[type="number"] { -moz-appearance: textfield; }
     .modal-overlay { position: static; background: none; }
     .modal { width: 100%; max-width: 100%; box-shadow: none; border: none; padding: 0; margin: 0; }
     .modal-header, .invoice-controls, .hide-on-pdf { display: none !important; }
-    #invoicePrintArea, .offer-print-area, .order-print-area { border: none; overflow: visible; padding: 0; }
+    #invoicePrintArea, .order-print-area { border: none; overflow: visible; padding: 0; }
 
     .editable-price { border: none !important; background: transparent !important; padding: 0 !important; box-shadow: none !important; text-align: center; width: 100% !important; max-width: none !important; pointer-events: none; color: #000 !important; font-size: 13px !important; }
+    .editable-name { border: none !important; background: transparent !important; padding: 0 !important; }
     .qty-controls { border: none !important; background: transparent !important; padding: 0 !important; }
     .calc-table th { background-color: #e2e8f0 !important; color: #000 !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
-    body.printing-offer #offerModal { display: block !important; position: static; }
-    body.printing-offer #invoiceModal, body.printing-offer #orderModal { display: none !important; }
-
     body.printing-invoice #invoiceModal { display: block !important; position: static; }
-    body.printing-invoice #offerModal, body.printing-invoice #orderModal { display: none !important; }
+    body.printing-invoice #orderModal { display: none !important; }
 
     body.printing-order #orderModal { display: block !important; position: static; }
-    body.printing-order #invoiceModal, body.printing-order #offerModal { display: none !important; }
+    body.printing-order #invoiceModal { display: none !important; }
 }

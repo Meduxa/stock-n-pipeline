@@ -176,7 +176,7 @@ function productCardHtml(p, margin) {
             <div class="price-box">
                 <div class="p-col"><span class="p-label">თვითღ.</span><span class="p-val">${formatLari(p.cost)} ₾</span></div>
                 <div class="p-col"><span class="p-label">გასაყიდი</span><span class="p-val sale">${formatLari(retail)} ₾</span></div>
-                <button class="card-add-btn" onclick="addToCalc(${jsArg(p.code)}, this)" title="ინვოისში დამატება">+</button>
+                <button class="card-add-btn" onclick="addToCalc(${jsArg(p.code)}, this)" title="შეთავაზებაში დამატება">+</button>
             </div>
         </div>`;
 }
