@@ -160,6 +160,7 @@ function openTaskModal(taskId = null) {
     }
 
     currentEditingTask = taskId ? tasksData.find(t => t.id === taskId) : null;
+    document.getElementById('taskDeleteBtn').style.display = isAdmin && currentEditingTask ? 'inline-block' : 'none';
     if (currentEditingTask) {
         document.getElementById('taskModalTitle').innerText = "ტასკის რედაქტირება";
         document.getElementById('taskId').value = taskId;
@@ -208,6 +209,33 @@ function openTaskModal(taskId = null) {
 
 function closeTaskModal() {
     document.getElementById('taskModal').style.display = 'none';
+}
+
+// წაშლა მხოლოდ ადმინისთვის (firestore.rules-იც მხოლოდ ადმინს აძლევს უფლებას)
+async function deleteTask() {
+    const id = document.getElementById('taskId').value;
+    if (!isAdmin || !id) return;
+    const task = tasksData.find(t => t.id === id) || currentEditingTask || {};
+    if (!confirm(`ტასკი „${task.title || ''}" სამუდამოდ წაიშლება მიმაგრებულ ფაილებთან ერთად.\n\nგავაგრძელოთ?`)) return;
+
+    if (isLocalMode) {
+        const idx = localTasks.findIndex(t => t.id === id);
+        if (idx !== -1) localTasks.splice(idx, 1);
+        localStorage.setItem('stock_pipeline_tasks', JSON.stringify(localTasks));
+        closeTaskModal();
+        renderBacklog();
+        return;
+    }
+
+    try {
+        await db.collection("tasks").doc(id).delete();
+    } catch (err) {
+        console.error("ტასკის წაშლის შეცდომა:", err);
+        alert("წაშლა ვერ მოხერხდა: " + (err && err.message ? err.message : err));
+        return;
+    }
+    deleteStoredFiles((task.files || []).filter(f => f.path).map(f => f.path));
+    closeTaskModal();
 }
 
 function handleTaskFileUpload(event) {

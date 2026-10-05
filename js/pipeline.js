@@ -291,6 +291,7 @@ function openLeadModal(leadId = null) {
     removedStoredPaths = [];
 
     const sourceLead = leadId ? leadsData.find(l => l.id === leadId) : null;
+    document.getElementById('leadDeleteBtn').style.display = isAdmin && sourceLead ? 'inline-block' : 'none';
 
     if (sourceLead) {
         // ასლი, რომ შეუნახავი კომენტარები ორიგინალ ლიდში არ მოხვდეს, თუ ფანჯარა შენახვის გარეშე დაიხურა
@@ -357,6 +358,33 @@ function onLeadStageChange() {
 
 function closeLeadModal() {
     document.getElementById('leadModal').style.display = 'none';
+}
+
+// წაშლა მხოლოდ ადმინისთვის (firestore.rules-იც მხოლოდ ადმინს აძლევს უფლებას)
+async function deleteLead() {
+    const id = document.getElementById('leadId').value;
+    if (!isAdmin || !id) return;
+    const lead = leadsData.find(l => l.id === id) || currentEditingLead || {};
+    if (!confirm(`ლიდი „${lead.clinic || 'უცნობი'}" სამუდამოდ წაიშლება მიმაგრებულ ფაილებთან ერთად.\n\nგავაგრძელოთ?`)) return;
+
+    if (isLocalMode) {
+        const idx = localLeads.findIndex(l => l.id === id);
+        if (idx !== -1) localLeads.splice(idx, 1);
+        localStorage.setItem('stock_pipeline_leads', JSON.stringify(localLeads));
+        closeLeadModal();
+        renderPipeline();
+        return;
+    }
+
+    try {
+        await db.collection("leads").doc(id).delete();
+    } catch (err) {
+        console.error("ლიდის წაშლის შეცდომა:", err);
+        alert("წაშლა ვერ მოხერხდა: " + (err && err.message ? err.message : err));
+        return;
+    }
+    deleteStoredFiles((lead.files || []).filter(f => f.path).map(f => f.path));
+    closeLeadModal();
 }
 
 function handleLeadFileUpload(event) {
