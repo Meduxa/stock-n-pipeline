@@ -121,7 +121,7 @@ async function uploadPendingFiles(folder, files) {
 
 // Storage-იდან წაშლა — "საუკეთესო მცდელობით": ჩავარდნა მხოლოდ ლოგდება (ობოლი ფაილი, და არა მონაცემის დაკარგვა)
 function deleteStoredFiles(paths) {
-    paths.forEach(p => storage.ref(p).delete().catch(err => console.warn('Storage-იდან წაშლა ვერ მოხერხდა:', p, err)));
+    return Promise.all(paths.map(p => storage.ref(p).delete().catch(err => console.warn('Storage-იდან წაშლა ვერ მოხერხდა:', p, err))));
 }
 
 // გადმოწერის ბმული მოთხოვნისას იქმნება, რომ Storage-ის წესებმა ყოველ ჯერზე შეამოწმოს წვდომა

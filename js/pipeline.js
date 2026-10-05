@@ -78,7 +78,7 @@ function renderPipeline() {
     const searchVal = document.getElementById('pipelineFilterAdmin').value.toLowerCase().trim();
     const monthVal = document.getElementById('pipelineMonthFilter').value;
 
-    if (isAdmin && searchVal) {
+    if (searchVal) {
         filteredLeads = leadsData.filter(l =>
             (l.userEmail || '').toLowerCase().includes(searchVal) ||
             (l.clinic || '').toLowerCase().includes(searchVal) ||
@@ -286,7 +286,7 @@ function openLeadModal(leadId = null) {
     document.getElementById('leadModal').style.display = 'flex';
     document.getElementById('leadNote').value = '';
     document.getElementById('leadFileUpload').value = '';
-    document.getElementById('leadManagerSection').style.display = isAdmin ? 'block' : 'none';
+    document.getElementById('leadManagerSection').style.display = 'block';
     tempFiles = [];
     removedStoredPaths = [];
 
@@ -492,11 +492,21 @@ async function saveLead() {
         data.lostComment = null;
     }
 
-    if (isAdmin) {
-        const customEmail = document.getElementById('leadManagerEmail').value.trim();
-        if (customEmail) data.userEmail = customEmail;
-    } else if (!id) {
-        data.userEmail = currentUser ? currentUser.email : "";
+    const myEmail = currentUser ? currentUser.email : "";
+    const customEmail = document.getElementById('leadManagerEmail').value.trim();
+    if (customEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customEmail)) {
+        alert("პასუხისმგებელი მენეჯერის ელ-ფოსტა არასწორია.");
+        return;
+    }
+    if (customEmail) data.userEmail = customEmail;
+    else if (!id || !isAdmin) data.userEmail = myEmail;
+
+    // არაადმინი ლიდს სხვას გადასცემს: ჯერ საკუთარი სახელით ვინახავთ (ფაილების ატვირთვა/წაშლა Storage-ის წესებით
+    // მფლობელს მოითხოვს) და მფლობელს ბოლოს ვცვლით — ამის შემდეგ ლიდი მის დაფაზე აღარ ჩანს
+    const transferTo = (!isAdmin && !isLocalMode && data.userEmail !== myEmail) ? data.userEmail : null;
+    if (transferTo) {
+        if (!confirm(`ლიდი გადაეცემა: ${transferTo}\n\nშენახვის შემდეგ ის თქვენს დაფაზე აღარ გამოჩნდება. გავაგრძელოთ?`)) return;
+        data.userEmail = myEmail;
     }
 
     if (id) {
@@ -543,7 +553,12 @@ async function saveLead() {
             await db.collection("leads").doc(leadId).update({ files: uploaded.files });
         }
 
-        deleteStoredFiles(removedStoredPaths);
+        if (transferTo) {
+            await deleteStoredFiles(removedStoredPaths);
+            await db.collection("leads").doc(leadId).update({ userEmail: transferTo });
+        } else {
+            deleteStoredFiles(removedStoredPaths);
+        }
         closeLeadModal();
     } catch (err) {
         deleteStoredFiles(uploadedPaths);

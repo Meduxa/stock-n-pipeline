@@ -34,11 +34,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Leads and tasks: admins see everything; managers only their own and cannot reassign them.
+    // Leads and tasks: admins see everything; managers only their own.
+    // Managers may hand their own lead to another user (and then lose access to it); tasks cannot be reassigned.
     match /leads/{leadId} {
       allow read: if isAdmin() || ownsExisting();
       allow create: if isAdmin() || ownsNew();
-      allow update: if isAdmin() || (ownsExisting() && ownsNew());
+      allow update: if isAdmin() || ownsExisting();
       allow delete: if isAdmin();
     }
 

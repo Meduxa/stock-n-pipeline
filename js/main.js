@@ -11,7 +11,7 @@ function showApp(user, admin) {
     document.getElementById('mainContainer').style.display = 'block';
     document.getElementById('uploadWrapper').style.display = admin ? 'flex' : 'none';
     document.getElementById('usdControlBox').style.display = admin ? 'flex' : 'none';
-    document.getElementById('pipelineFilterAdmin').style.display = admin ? 'block' : 'none';
+    document.getElementById('pipelineFilterAdmin').style.display = 'block'; // ძიება ყველასთვის; არაადმინი მხოლოდ საკუთარ ლიდებში ეძებს
     document.getElementById('taskFilterAdmin').style.display = admin ? 'block' : 'none';
 }
 

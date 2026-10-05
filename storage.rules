@@ -19,7 +19,7 @@ service firebase.storage {
     }
 
     // Ownership is read from the Firestore document, so it matches firestore.rules
-    // and follows the lead/task when an admin reassigns it.
+    // and follows the lead/task when it is reassigned.
     function ownsDoc(collection, docId) {
       return signedIn() &&
         firestore.get(/databases/(default)/documents/$(collection)/$(docId)).data.userEmail
