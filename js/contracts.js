@@ -66,10 +66,36 @@ function requisitesTable(sellerLabel, buyerLabel) {
                 </tr>
             </table>`;
 }
-function logoBlock() {
-    return `<div class="c-logo" style="text-align:center; margin-bottom:20px;">
-                <img src="${COMPANY_LOGO_URL}" style="max-height:80px;" alt="Logo" onerror="this.src='mediclogo.png'">
-            </div>`;
+// ბლანკი: ახალი ლოგო + კომპანიის რეკვიზიტების ხაზი. ბმული აბსოლუტურია, რომ გადმოწერილ Word ფაილშიც ჩაიტვირთოს.
+// Word-ში ბლანკი გვერდის სათაურში (header) გადადის და ყოველ გვერდზე მეორდება — იხ. buildContractWordHtml.
+function letterheadBlock() {
+    const logoUrl = new URL(CONTRACT_LOGO_PATH, location.href).href;
+    return `<table class="c-letterhead" style="width:100%; border-collapse:collapse; margin-bottom:14pt; border-bottom:1.5pt solid #3d0a4a;">
+    <tr><td style="text-align:center; padding:0 0 4pt 0; border:none;"><img src="${logoUrl}" width="240" height="60" style="width:240px; height:60px;" alt="მედიკი"></td></tr>
+    <tr><td style="text-align:center; padding:0 0 5pt 0; border:none; font-size:8pt; line-height:1.3; color:#3d0a4a;">${escapeHtml(CONTRACT_LETTERHEAD)} <a href="https://${CONTRACT_WEBSITE}" style="color:#3d0a4a;">${CONTRACT_WEBSITE}</a></td></tr>
+</table>`;
+}
+
+// პრევიუს წყლის ნიშანი: 45°-ით დახრილი წითელი წარწერა, ყოველ ~A4 სიმაღლეზე მეორდება
+function watermarkBackground() {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1130"><text x="400" y="565" text-anchor="middle" dominant-baseline="middle" transform="rotate(-45 400 565)" font-family="Arial, sans-serif" font-size="88" font-weight="bold" fill="#ff0000" fill-opacity="0.18">${escapeHtml(CONTRACT_WATERMARK)}</text></svg>`;
+    return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
+// Word-ის წყლის ნიშანი (VML, როგორც Word-ი თავად ინახავს): header-შია, ამიტომ ყოველ გვერდზე ჩანს
+function watermarkVml() {
+    return `<!--[if gte vml 1]><v:shapetype id="_x0000_t136" coordsize="21600,21600" o:spt="136" adj="10800" path="m@7,l@8,m@5,21600l@6,21600e">
+ <v:formulas><v:f eqn="sum #0 0 10800"/><v:f eqn="prod #0 2 1"/><v:f eqn="sum 21600 0 @1"/><v:f eqn="sum 0 0 @2"/><v:f eqn="sum 21600 0 @3"/><v:f eqn="if @0 @3 0"/><v:f eqn="if @0 21600 @1"/><v:f eqn="if @0 0 @2"/><v:f eqn="if @0 @4 21600"/><v:f eqn="mid @5 @6"/><v:f eqn="mid @8 @5"/><v:f eqn="mid @7 @8"/><v:f eqn="mid @6 @7"/><v:f eqn="sum @6 0 @5"/></v:formulas>
+ <v:path textpathok="t" o:connecttype="custom" o:connectlocs="@9,0;@10,10800;@11,21600;@12,10800" o:connectangles="270,180,90,0"/>
+ <v:textpath on="t" fitshape="t"/>
+ <v:handles><v:h position="#0,bottomRight" xrange="6629,14971"/></v:handles>
+ <o:lock v:ext="edit" text="t" shapetype="t"/>
+</v:shapetype>
+<v:shape id="PowerPlusWaterMarkObject1" o:spid="_x0000_s2049" type="#_x0000_t136" style='position:absolute;margin-left:0;margin-top:0;width:500pt;height:90pt;rotation:315;z-index:-251657216;mso-position-horizontal:center;mso-position-horizontal-relative:margin;mso-position-vertical:center;mso-position-vertical-relative:margin' o:allowincell="f" fillcolor="red" stroked="f">
+ <v:fill opacity=".35"/>
+ <v:textpath style='font-family:"Arial";font-size:1pt;font-weight:bold' string="${escapeHtml(CONTRACT_WATERMARK)}"/>
+ <w:wrap anchorx="margin" anchory="margin"/>
+</v:shape><![endif]-->`;
 }
 function buyerFullName() {
     const n = cV('buyerName');
@@ -160,7 +186,7 @@ const CONTRACT_TEMPLATES = [
             }).join('') + '</div>';
         }
         return `
-${logoBlock()}
+${letterheadBlock()}
 <h3>ნასყიდობის ხელშეკრულება № ${no}</h3>
 <div class="c-flexrow"><span><strong>ქ. თბილისი</strong></span><span><strong>${cDateSlash('date')}</strong></span></div>
 <p>ერთის მხრივ, <strong>შპს „თბილისი მედიკი“</strong> (ს/კ: ${COMPANY.idCode}), შემდგომში წოდებული, როგორც „გამყიდველი“, წარმოდგენილი მისი კომერციული დირექტორის ${COMPANY.director}ს სახით და მეორეს მხრივ, <strong>${buyerFullName()}</strong> (ს/კ ${cF('buyerId','_________')}), შემდგომში წოდებული, როგორც „მყიდველი“, წარმოდგენილი მისი დირექტორის <strong>${cF('buyerDirector','___________________')}</strong> სახით, ვდებთ წინამდებარე ხელშეკრულებას შემდეგზე:</p>
@@ -203,7 +229,7 @@ ${schHtml}
 ${requisitesTable('„გამყიდველი“','„მყიდველი“')}
 
 <div class="c-pagebreak">
-${logoBlock()}
+${letterheadBlock()}
 <div style="text-align:center; margin-bottom:20px;">
     <span style="background:#e2e8f0; padding:5px 15px; font-weight:bold; font-size:15px;">ნასყიდობის ხელშეკრულება N${no}</span>
 </div>
@@ -255,7 +281,7 @@ ${requisitesTable('„გამყიდველი“','„მყიდვე�
         const penalty = cF('penalty','0.3');
         const years = cF('termYears','1');
         return `
-${logoBlock()}
+${letterheadBlock()}
 <h3>ხელშეკრულება N ${no}</h3>
 <div class="c-flexrow"><span><strong>ქ. თბილისი</strong></span><span><strong>${cDateSlash('date')}</strong></span></div>
 <p>ჩვენ, წინამდებარე ხელშეკრულებაზე ხელის მომწერნი, ერთის მხრივ <strong>შპს „თბილისი მედიკ“</strong> (ს/კ ${COMPANY.idCode}), შემდგომში „გამყიდველი“, წარმოდგენილი კომერციული დირექტორის ${COMPANY.director}ს სახით და მეორეს მხრივ, <strong>${buyerFullName()}</strong> (ს/კ ${cF('buyerId','_________')}), შემდგომში „მყიდველი“, წარმოდგენილი დირექტორის <strong>${cF('buyerDirector','___________________')}</strong> სახით, საქართველოს მოქმედი კანონმდებლობის საფუძველზე ვდებთ ხელშეკრულებას შემდეგზე:</p>
@@ -338,7 +364,7 @@ ${requisitesTable('„გამყიდველი“','„მყიდვე�
         const dPct = cF('dailyPct','0,5');
         const annexTable = productTableHtml(this.productCols, '5,24,19,13,7,15,17', 2);
         return `
-${logoBlock()}
+${letterheadBlock()}
 <h3>თხოვების ხელშეკრულება #${no}</h3>
 <div class="c-flexrow"><span><strong>ქ. თბილისი</strong></span><span><strong>${cDateSlash('date')}</strong></span></div>
 <p>ერთის მხრივ, <strong>შპს „თბილისი მედიკ“</strong> (ს/კ ${COMPANY.idCode}), წარმოდგენილი კომერციული დირექტორის ${COMPANY.director}ს სახით, შემდგომში „მესაკუთრე“ და მეორეს მხრივ, <strong>${buyerFullName()}</strong> (ს/კ ${cF('buyerId','_________')}), წარმოდგენილი დირექტორის <strong>${cF('buyerDirector','___________________')}</strong> სახით, შემდგომში „მთხოვებელი“, საქართველოში მოქმედი კანონმდებლობის საფუძველზე ვდებთ ხელშეკრულებას შემდეგზე:</p>
@@ -384,7 +410,7 @@ ${logoBlock()}
 ${requisitesTable('„მესაკუთრე“','„მთხოვებელი“')}
 
 <div class="c-pagebreak">
-${logoBlock()}
+${letterheadBlock()}
 <h3>#${no} ხელშეკრულების დანართი #1</h3>
 ${annexTable}
 <table class="c-nobreak" style="width:100%; border-collapse:collapse; margin-bottom:30px; border:1px solid #000;">
@@ -398,7 +424,7 @@ ${requisitesTable('„მესაკუთრე“','„მთხოვებ�
 </div>
 
 <div class="c-pagebreak">
-${logoBlock()}
+${letterheadBlock()}
 <h3>მიღება-ჩაბარების აქტი</h3>
 <p style="text-align:center; margin-top:-10px;">(საქონლის, დროებით სარგებლობაში უსასყიდლო თხოვების სახით გადაცემა)</p>
 <div class="c-flexrow"><span><strong>ქ. თბილისი</strong></span><span><strong>${cDateSlash('actDate')}</strong></span></div>
@@ -443,7 +469,7 @@ ${requisitesTable('„მესაკუთრე“','„მთხოვებ�
             ? itemsRaw.split('\n').filter(x=>x.trim()).map((x,i)=>`<p style="margin:3px 0;">${i+1}. ${x.trim()}</p>`).join('')
             : '<p style="margin:3px 0;">----------------------------ჩამონათვალი/დასახელება----------------------------</p>';
         return `
-${logoBlock()}
+${letterheadBlock()}
 <h3>მიღება-ჩაბარების აქტი</h3>
 <div class="c-flexrow"><span><strong>ქ. თბილისი</strong></span><span><strong>${cDateSlash('date')}</strong></span></div>
 <p>ჩვენ, ქვემორე ხელის მომწერნი, ერთის მხრივ „მიმწოდებელი“ <strong>შპს „თბილისი მედიკ“</strong>, წარმოდგენილი კომერციული დირექტორის ${COMPANY.director}ს სახით და მეორეს მხრივ, „შემსყიდველი“ <strong>${buyerFullName()}</strong>, წარმოდგენილი პასუხისმგებელი პირის <strong>${resp || '_______________________________'}</strong> სახით, ვადგენთ ამ აქტს მასზედ, რომ ელ. ზედნადებ(ებ)ის N <strong>${cF('waybill','__________________')}</strong> თანახმად შემსყიდველისთვის მიწოდებულია <strong>${cMoneyId('amount')}</strong> ლარის ღირებულების საქონელი, კერძოდ:</p>
@@ -644,17 +670,33 @@ function renderProductRows() {
 /* ---------- პრევიუ ---------- */
 function generateContractPreview() {
     const tpl = getContractTpl();
-    document.getElementById('contractPrintArea').innerHTML = tpl.body();
+    const area = document.getElementById('contractPrintArea');
+    area.innerHTML = tpl.body();
+    area.style.backgroundImage = watermarkBackground();
 }
 
 /* ==========================================
    📥 WORD ექსპორტი
    ========================================== */
-function downloadContractWord() {
-    const printArea = document.getElementById('contractPrintArea').innerHTML;
+// Word-ისთვის (.doc) HTML: ბლანკი და წყლის ნიშანი გვერდის სათაურშია (header), ამიტომ ყოველ გვერდზე მეორდება;
+// ტექსტიდან ბლანკი ამოღებულია, რომ არ გაორმაგდეს.
+function buildContractWordHtml() {
+    const area = document.getElementById('contractPrintArea').cloneNode(true);
+    area.querySelectorAll('.c-letterhead').forEach(el => el.remove());
+    // Word-ი flex-ს ვერ კითხულობს: „ქ. თბილისი" მარცხნივ და თარიღი მარჯვნივ — ორსვეტიანი ცხრილით
+    area.querySelectorAll('.c-flexrow').forEach(row => {
+        const [left, right] = row.children;
+        const table = document.createElement('table');
+        table.className = 'c-flexrow';
+        table.innerHTML = `<tr><td style="text-align:left; border:none; padding:0;">${left ? left.innerHTML : ''}</td>` +
+            `<td style="text-align:right; border:none; padding:0;">${right ? right.innerHTML : ''}</td></tr>`;
+        row.replaceWith(table);
+    });
+    const printArea = area.innerHTML;
 
     // Microsoft Word-ის მეტამონაცემები და ცხრილების (CSS) სტილები
-    const header = `<html xmlns:o='urn:schemas-microsoft-com:office:office'
+    const header = `<html xmlns:v='urn:schemas-microsoft-com:vml'
+                          xmlns:o='urn:schemas-microsoft-com:office:office'
                           xmlns:w='urn:schemas-microsoft-com:office:word'
                           xmlns='http://www.w3.org/TR/REC-html40'>
     <head>
@@ -668,10 +710,18 @@ function downloadContractWord() {
             </w:WordDocument>
         </xml>
         <style>
-            @page {
+            v\\:* { behavior: url(#default#VML); }
+            o\\:* { behavior: url(#default#VML); }
+            @page Section1 {
                 size: 21cm 29.7cm; /* A4 ზომა */
-                margin: 2cm 1.5cm;
+                margin: 3.8cm 1.5cm 2cm 1.5cm; /* ზედა ველი ბლანკისთვის */
+                mso-header-margin: 0.8cm;
+                mso-footer-margin: 0.8cm;
+                mso-header: h1;
             }
+            div.Section1 { page: Section1; }
+            /* header-ის კონტეინერი ტექსტში არ ჩანს — Word-ი მას მხოლოდ გვერდის სათაურად იყენებს */
+            table#hdrftrtbl { margin: 0 0 0 900in; width: 1px; height: 1px; overflow: hidden; }
             body {
                 font-family: 'Sylfaen', sans-serif;
                 font-size: 10.5pt;
@@ -680,7 +730,6 @@ function downloadContractWord() {
             table { border-collapse: collapse; width: 100%; table-layout: fixed; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
             td, th { vertical-align: top; font-size: 10pt; word-wrap: break-word; overflow-wrap: break-word; }
             tr { page-break-inside: avoid; }
-            .c-nobreak { page-break-inside: avoid; }
 
             /* პროდუქციის ცხრილის სტილი */
             table.c-table { border: 1px solid #000000; margin-bottom: 14pt; font-size: 9.5pt; }
@@ -691,13 +740,22 @@ function downloadContractWord() {
             .req-table { border: 1px solid #000000; margin-top: 6pt; }
             .req-table td { width: 50%; border: 1px solid #000000; padding: 6pt; text-align: left; }
 
-            .c-logo { text-align: center; margin-bottom: 10pt; }
+            h3 { text-align: center; }
+            table.c-flexrow { margin-bottom: 12pt; }
+            table.c-flexrow td { font-size: 10.5pt; }
         </style>
     </head>
     <body>`;
 
-    const footer = "</body></html>";
-    const sourceHTML = header + printArea + footer;
+    const footer = `<table id="hdrftrtbl" border="0" cellspacing="0" cellpadding="0"><tr><td>
+        <div style="mso-element:header" id="h1">${watermarkVml()}${letterheadBlock()}</div>
+    </td></tr></table>
+    </div></body></html>`;
+    return header + '<div class="Section1">' + printArea + footer;
+}
+
+function downloadContractWord() {
+    const sourceHTML = buildContractWordHtml();
 
     // Blob + \ufeff BOM ქართული ასოებისთვის
     const blob = new Blob(['\ufeff', sourceHTML], {

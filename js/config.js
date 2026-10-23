@@ -20,14 +20,18 @@ const ADMIN_EMAILS = ["levan.medoshvili@gmail.com", "tornike.a@tbilisimedic.ge",
 
 const STORAGE_BASE_URL = "https://firebasestorage.googleapis.com/v0/b/stockpipeline-2c77b.firebasestorage.app/o/products%2F";
 const storageUrl = fileName => `${STORAGE_BASE_URL}${encodeURIComponent(fileName)}?alt=media`;
-const COMPANY_LOGO_URL = storageUrl("mediclogo.png");
+// ხელშეკრულებების ბლანკი: ლოგო (საიტზე, img/ საქაღალდეში — Word-ი მას ბმულით ტვირთავს), რეკვიზიტების ხაზი და წყლის ნიშანი
+const CONTRACT_LOGO_PATH = "img/medic-logo.png";
+const CONTRACT_LETTERHEAD = 'შპს "თბილისი მედიკ" ს/კ 404865286 | მის: ლუბლიანას ქ. #28ა 0159 თბილისი, საქართველო; ტელ: +995 32 375177 ელ.ფოსტა: info@medic.ge, ვებ-გვერდი:';
+const CONTRACT_WEBSITE = "www.medic.ge";
+const CONTRACT_WATERMARK = "TBILISI MEDIC LTD";
 
 const COMPANY = {
     name: "შპს „თბილისი მედიკ“",
     idCode: "404865286",
     address: "ქ. თბილისი, ლუბლიანას ქ. #28ა",
     phone: "2375177",
-    email: "info@tbilisimedic.ge",
+    email: "info@medic.ge",
     bank: "ს.ს. „თიბისი ბანკი“",
     iban: "GE68TB7031036020100007",
     bankCode: "TBCBGE22",
