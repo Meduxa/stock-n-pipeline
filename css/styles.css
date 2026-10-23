@@ -140,6 +140,11 @@ input[type="number"] { -moz-appearance: textfield; }
 
 #invoicePrintArea, .order-print-area { flex: 1; overflow-y: auto; padding: 20px; background: white; border: 1px solid var(--border); border-radius: 8px; }
 .invoice-header-info { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid var(--primary); padding-bottom: 15px; }
+.invoice-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.invoice-doc-type { margin: 0 0 10px 0; padding: 8px 10px; font-size: 16px; font-weight: 700; color: var(--primary); border: 2px solid var(--primary); border-radius: 6px; background: #fff; cursor: pointer; }
+.invoice-doc-type.invalid { border-color: #ef4444; color: #ef4444; }
+/* ეკრანზე სათაურს ჩამოსაშლელი ცვლის; ბეჭდვისას და მიმაგრებულ ასლში (სადაც ეს სტილი არ არის) სათაური ჩანს */
+.invoice-doc-title { display: none; }
 .client-info h3 { margin: 0 0 5px 0; color: var(--text-dark); text-align: right;}
 .client-info p { margin: 0; color: var(--text-light); font-size: 14px; text-align: right;}
 
@@ -323,6 +328,7 @@ input[type="number"] { -moz-appearance: textfield; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
     body.printing-invoice #invoiceModal { display: block !important; position: static; }
+    .invoice-doc-title { display: block; }
     body.printing-invoice #orderModal { display: none !important; }
 
     body.printing-order #orderModal { display: block !important; position: static; }

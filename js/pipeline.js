@@ -650,12 +650,14 @@ async function attachDocumentToLead({ inputId, printAreaId, filePrefix, amount, 
 }
 
 function attachInvoiceToLead() {
+    const type = requireInvoiceDocType();
+    if (!type) return;
     attachDocumentToLead({
-        inputId: 'invoiceLeadTarget', printAreaId: 'invoicePrintArea', filePrefix: 'ინვოისი',
+        inputId: 'invoiceLeadTarget', printAreaId: 'invoicePrintArea', filePrefix: type.filePrefix,
         amount: calcTotal,
-        historyText: `მიმაგრდა ახალი ინვოისი/კომერციული შეთავაზება (თანხა დაემატა: ${calcTotal} ₾)`,
+        historyText: `მიმაგრდა ახალი ${type.title} (თანხა დაემატა: ${calcTotal} ₾)`,
         emptyMsg: "გთხოვთ აირჩიოთ ლიდი სიიდან!",
-        successMsg: "ინვოისი/კომერციული შეთავაზება წარმატებით მიმაგრდა არჩეულ ლიდს და თანხა დაჯამდა!",
+        successMsg: `${type.title} წარმატებით მიმაგრდა არჩეულ ლიდს და თანხა დაჯამდა!`,
         onDone: closeInvoice
     });
 }

@@ -25,6 +25,7 @@ const CONTRACT_LOGO_PATH = "img/medic-logo.png";
 const CONTRACT_LETTERHEAD = 'შპს "თბილისი მედიკ" ს/კ 404865286 | მის: ლუბლიანას ქ. #28ა 0159 თბილისი, საქართველო; ტელ: +995 32 375177 ელ.ფოსტა: info@medic.ge, ვებ-გვერდი:';
 const CONTRACT_WEBSITE = "www.medic.ge";
 const CONTRACT_WATERMARK = "TBILISI MEDIC LTD";
+const INVOICE_LOGO_PATH = "img/medic-logo-square.png";
 
 const COMPANY = {
     name: "შპს „თბილისი მედიკ“",

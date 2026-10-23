@@ -506,8 +506,18 @@
         <div id="invoicePrintArea">
             <div class="invoice-header-info">
                 <div>
-                    <h2 style="margin: 0 0 10px 0; color: var(--primary);">ინვოისი/კომერციული შეთავაზება</h2>
-                    <p style="margin: 0 0 5px 0; color: var(--text-light);">ინვოისის #: <span id="invNumber" style="font-weight: 600; color: var(--text-dark);"></span></p>
+                    <div class="invoice-brand">
+                        <img id="invLogo" alt="მედიკი" style="height: 80px; width: auto;">
+                        <span style="font-weight: 600; color: #3d0a4a;">შპს "თბილისი მედიკ" ს/კ: 404865286</span>
+                    </div>
+                    <!-- დოკუმენტის ტიპი სავალდებულოა; PDF-სა და ლიდზე მიმაგრებულ ასლში მხოლოდ არჩეული სათაური ჩანს -->
+                    <select id="invDocType" class="hide-on-pdf invoice-doc-type" onchange="updateInvoiceDocType()">
+                        <option value="">— აირჩიეთ დოკუმენტის ტიპი —</option>
+                        <option value="invoice">ინვოისი</option>
+                        <option value="offer">კომერციული შეთავაზება</option>
+                    </select>
+                    <h2 id="invDocTitle" class="invoice-doc-title" style="margin: 0 0 10px 0; color: #1D9E75;"></h2>
+                    <p style="margin: 0 0 5px 0; color: var(--text-light);"><span id="invNumberLabel">ინვოისის</span> #: <span id="invNumber" style="font-weight: 600; color: var(--text-dark);"></span></p>
                     <p style="margin: 0; color: var(--text-light);">თარიღი: <span id="invDate"></span></p>
                 </div>
                 <div class="client-info" id="clientDisplay">
@@ -543,7 +553,7 @@
             </div>
 
             <div style="text-align:right; font-size:13px; font-weight:bold; color:var(--text-dark); margin-top:10px;">
-                ინვოისი ვალიდურია 10 დღის მანძილზე
+                <span id="invValidityLabel">ინვოისი</span> ვალიდურია 10 დღის მანძილზე
             </div>
 
             <div class="invoice-footer">

@@ -13,10 +13,44 @@ function generateInvoiceNumber() {
     return yy + mm + dd + rand;
 }
 
+// დოკუმენტის ტიპი — მენეჯერი ყოველ ჯერზე ირჩევს (სავალდებულოა PDF-ისა და ლიდზე მიბმისთვის)
+const INVOICE_DOC_TYPES = {
+    invoice: { title: 'ინვოისი', numberLabel: 'ინვოისის', filePrefix: 'ინვოისი', pdfPrefix: 'Invoice' },
+    offer:   { title: 'კომერციული შეთავაზება', numberLabel: 'შეთავაზების', filePrefix: 'კომერციული_შეთავაზება', pdfPrefix: 'Offer' }
+};
+
+function getInvoiceDocType() {
+    return INVOICE_DOC_TYPES[document.getElementById('invDocType').value] || null;
+}
+
+function updateInvoiceDocType() {
+    const type = getInvoiceDocType();
+    document.getElementById('invDocType').classList.toggle('invalid', !type);
+    document.getElementById('invDocTitle').innerText = type ? type.title : '';
+    document.getElementById('invNumberLabel').innerText = type ? type.numberLabel : 'ინვოისის';
+    document.getElementById('invValidityLabel').innerText = type ? type.title : 'ინვოისი';
+}
+
+// აბრუნებს არჩეულ ტიპს; თუ არ არის არჩეული — აფრთხილებს და აბრუნებს null-ს
+function requireInvoiceDocType() {
+    const type = getInvoiceDocType();
+    if (!type) {
+        document.getElementById('invDocType').classList.add('invalid');
+        document.getElementById('invDocType').focus();
+        alert("აირჩიეთ დოკუმენტის ტიპი: ინვოისი ან კომერციული შეთავაზება.");
+    }
+    return type;
+}
+
 function openInvoice() {
     document.getElementById('invoiceModal').style.display = 'flex';
     document.getElementById('invDate').innerText = new Date().toLocaleDateString('ka-GE');
     document.getElementById('invNumber').innerText = generateInvoiceNumber();
+    // აბსოლუტური ბმული, რომ ლიდზე მიმაგრებულ ასლშიც (სხვა დომენიდან გახსნისას) ჩაიტვირთოს
+    document.getElementById('invLogo').src = new URL(INVOICE_LOGO_PATH, location.href).href;
+    document.getElementById('invDocType').value = '';
+    updateInvoiceDocType();
+    document.getElementById('invDocType').classList.remove('invalid');
     renderCalc();
 }
 
@@ -211,5 +245,7 @@ function renderCalc() {
 
 function generatePDF() {
     if (calcItems.length === 0) { alert("დოკუმენტი ცარიელია!"); return; }
-    printDocument('printing-invoice', "Invoice_" + document.getElementById('invNumber').innerText);
+    const type = requireInvoiceDocType();
+    if (!type) return;
+    printDocument('printing-invoice', type.pdfPrefix + "_" + document.getElementById('invNumber').innerText);
 }
